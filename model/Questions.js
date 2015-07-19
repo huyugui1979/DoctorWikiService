@@ -6,10 +6,8 @@ var mongoose = require('mongoose');
 var QuestionSchema = new mongoose.Schema(
     {
         tag:[String],
-        title: String,
-        category:String,
-        answer:String,
-        doctor: {type: mongoose.Schema.Types.ObjectId, ref: 'Doctor'},
-        answertime:{ type: Date, default: Date.now }
+        question: String,
+        questionTime:{ type: Date, default: Date.now },
+        status:String
     });
 mongoose.model('Question', QuestionSchema);

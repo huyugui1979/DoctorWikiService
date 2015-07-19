@@ -8,8 +8,9 @@ var mongoose = require('mongoose');
 
 var DoctorSchema = new mongoose.Schema(
     {
-        title: String,
+        name: String,
         phone:String,
-        password:String
+        password:String,
+        sex:String
     });
 mongoose.model('Doctor', DoctorSchema);
