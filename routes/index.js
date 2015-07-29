@@ -2,7 +2,7 @@ var express = require('express');
 var router = express.Router();
 
 var mongoose = require('mongoose');
-mongoose.connect('mongodb://localhost/medicalWiki');
+mongoose.connect('mongodb://huyugui.f3322.org/medicalWiki');
 
 require('../model/Comments');
 require('../model/Doctors');
@@ -25,18 +25,67 @@ router.get('/doctor', function (req, res, next) {
     });
     //
 });
-
-
+//
+router.get('/doctors/count', function (req, res, next) {
+    Doctor.count( {}, function (err, count) {
+        if (err) next(err);
+        res.jsonp(count);
+    })
+});
 //注册一个医生
-router.post('/doctor', function (req, res, next) {
+router.post('/doctors', function (req, res, next) {
     //
+
     Doctor.create(req.body, function (error, result) {
         if (error) next(error);
         res.jsonp(result);
     })
     //
 })
+router.delete('/doctors',function(req,res,next){
+    Doctor.findOneAndRemove({_id:req.query._id},function(error,result){
+        if (error) next(error);
+        res.jsonp(result);
+    });
+});
+router.put('/doctors',function(req,res,next){
+    Doctor.findOneAndUpdate({_id:req.body._id},req.body,function(error,result){
+        if (error) next(error);
 
+            res.jsonp(result);
+
+    });
+})
+router.delete('/doctors',function(req,res,next){
+    //
+    Doctor.findOneAndRemove({_id:req.body._id},function(error,result){
+        if (error) next(error);
+
+        res.jsonp(result);
+
+    });
+    //
+})
+router.get('/doctors',function (req, res, next){
+    //
+    Doctor.paginate(
+        {},
+        {
+            page: req.query.pageNo,
+            limit: req.query.pageNumber,
+            sortBy: {
+                registerTime: 1
+            }
+        },
+        function (error, result) {
+            if (error) next(error);
+            console.log(result);
+            res.jsonp(result);
+
+        }
+    );
+    //
+});
 
 //获取类别
 router.get('/category', function (req, res, next) {
@@ -67,6 +116,7 @@ router.get('/questions/', function (req, res, next) {
             {
                 page: req.query.pageNo,
                 limit: req.query.pageNumber,
+                populate:'doctor',
                 sortBy: {
                     questionTime: 1
                 }
@@ -106,8 +156,8 @@ router.get('/questions/doctor',function(req,res,next){
         console.log(result.updated);
     });
 });
-router.get('/comments/:question',function(req,res,next){
-    Comment.find({question:req.params.question}).populate('question').populate('doctor').exec(function(err,doc){
+router.get('/comments/question',function(req,res,next){
+    Comment.find({question:req.query.question}).populate('question').populate('doctor').exec(function(err,doc){
         if(err) next(err);
         res.jsonp(doc);
     });
@@ -122,7 +172,6 @@ router.post('/comments',function(req,res,next){
         });
         //
     })
-
 });
 router.post('/questions', function (req, res, next) {
 

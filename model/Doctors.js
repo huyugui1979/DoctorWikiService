@@ -5,12 +5,15 @@
  * Created by yuguihu on 15/7/5.
  */
 var mongoose = require('mongoose');
-
+var mongoosePaginate = require('mongoose-paginate');
 var DoctorSchema = new mongoose.Schema(
     {
         name: String,
         phone:String,
         password:String,
-        sex:String
+        sex:String,
+        selected:[String],
+        registerTime:Date
     });
+DoctorSchema.plugin(mongoosePaginate);
 mongoose.model('Doctor', DoctorSchema);
