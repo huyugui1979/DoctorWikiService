@@ -13,7 +13,8 @@ var DoctorSchema = new mongoose.Schema(
         password:String,
         sex:String,
         selected:[String],
-        registerTime:Date
+        registerTime:Date,
+        image:String
     });
 DoctorSchema.plugin(mongoosePaginate);
 mongoose.model('Doctor', DoctorSchema);
