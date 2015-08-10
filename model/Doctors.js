@@ -10,10 +10,12 @@ var DoctorSchema = new mongoose.Schema(
     {
         name: String,
         phone:String,
+        age:Number,
         password:String,
         sex:String,
         selected:[String],
         registerTime:Date,
+        collections:[{type: mongoose.Schema.Types.ObjectId, ref: 'Question'}],
         image:String
     });
 DoctorSchema.plugin(mongoosePaginate);
