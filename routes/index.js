@@ -95,6 +95,11 @@ router.post('/vcode/forget',function(req,res,next){
     }
     //
 });
+router.get('/statics/likenumber',function(req,res,next){
+    //
+
+    //
+});
 router.get('/vcode/register',function(req,res,next){
     //
     if(req.session.phone == req.query.phone && req.session.vcode == req.query.vcode){
@@ -161,6 +166,15 @@ router.get('/vcode/forget',function(req,res,next){
     })
 
 
+});
+router.get('/getkey',function(req,res,next){
+    var rest = require('restler');
+    var url = 'https://openapi.baidu.com/oauth/2.0/token?grant_type=client_credentials&client_id=nfN1CjSx3BAHQYRu8hNqGKx4&client_secret=8f22940fe7887171868178936ad0da0c';
+    rest.get(url).on('complete', function (data) {
+        //
+       res.jsonp(data);
+        //
+    });
 });
 router.post('/vcode/register',function(req,res,next){
         Doctor.count({phone: req.body.phone}, function (err, count) {
