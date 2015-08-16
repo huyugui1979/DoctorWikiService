@@ -3,6 +3,8 @@ var router = express.Router();
 var fs = require('fs');
 var mongoose = require('mongoose');
 var multiparty = require('multiparty');
+var simhash = require('simhash')('md5');
+
 
 mongoose.connect('mongodb://huyugui.f3322.org/medicalWiki');
 var nodejieba = require("nodejieba");
@@ -10,7 +12,7 @@ var nodejieba = require("nodejieba");
 //    userDict: '../dict/user.dict'
 //});
 nodejieba.load({
-    userDict:'../dict/sougou.dict'
+    userDict: '../dict/sougou.dict'
 });
 require('../model/Comments');
 require('../model/Doctors');
@@ -29,7 +31,7 @@ router.get('/doctor/login', function (req, res, next) {
     Doctor.find(req.query, function (err, result) {
         //未命名文件夹 2
         if (err) next(err);
-        if(result.length == 0)
+        if (result.length == 0)
             throw new Error("错误的手机号码或密码")
         else
             res.jsonp(result);
@@ -61,7 +63,7 @@ router.post('/portrait', function (req, res, next) {
                 }
             });
         }
-        res.jsonp({fileName:inputFile.originalFilename});
+        res.jsonp({fileName: inputFile.originalFilename});
     });
 });
 //
@@ -78,64 +80,119 @@ router.post('/doctors', function (req, res, next) {
 
     //
 })
-router.post('/vcode/forget',function(req,res,next){
+router.post('/vcode/forget', function (req, res, next) {
     //
-    if(req.session.phone == req.body.phone && req.session.vcode == req.body.vcode){
+    if (req.session.phone == req.body.phone && req.session.vcode == req.body.vcode) {
         //
-        Doctor.findOneAndUpdate({phone:req.body.phone},{ password: req.body.password },null, function (error, result) {
-            if (error){
+        Doctor.findOneAndUpdate({phone: req.body.phone}, {password: req.body.password}, null, function (error, result) {
+            if (error) {
                 throw new Error(error.message);
             }
             res.jsonp(result);
         })
         //
-    }else
-    {
+    } else {
         throw new Error('请输入正确的手机号或验证码');
     }
     //
 });
-router.get('/statics/likenumber',function(req,res,next){
+router.get('/statics/likenumber', function (req, res, next) {
     //
 
     //
 });
-router.get('/vcode/register',function(req,res,next){
+router.get('/vcode/register', function (req, res, next) {
     //
-    if(req.session.phone == req.query.phone && req.session.vcode == req.query.vcode){
+    if (req.session.phone == req.query.phone && req.session.vcode == req.query.vcode) {
         //
         Doctor.create(req.query, function (error, result) {
-            if (error){
+            if (error) {
                 throw new Error(error.message);
             }
             res.jsonp(result);
         })
         //
-    }else
-    {
+    } else {
         throw new Error('请输入正确的手机号或验证码');
     }
     //
 });
-router.get('/questions/search',function(req,res,next){
+router.get('/questions/search', function (req, res, next) {
     //
-    var searchs = req.query.search.split(' ');
-    Question.find({$and:[{tags:{$all:searchs}},{doctor: {$ne: null}}]},function(err,doc){
-        //
-        if (err) next(err);
-        res.jsonp(doc);
-        //
+    var tags = nodejieba.extract(req.query.search, 100);
+    var new_tags = [];
+    tags.forEach(function (e1, i1, a1) {
+        new_tags.push(e1.substring(0, e1.lastIndexOf(':')));
     });
     //
-})
-router.get('/vcode/forget',function(req,res,next){
+    var hash = simhash(new_tags);
+
+    var o = {};
+    //
+    o.map = function () {
+        var compareHash = function (r1, r2) {
+            var result3 = [];
+            r1.forEach(function (e, i, r) {
+                result3.push(e ^ r2[i]);
+            });
+            var total = 0;
+            result3.forEach(function (e, i, r) {
+                total = total + e;
+            });
+            return total;
+        }
+        if (this.doctor != null) {
+            var s = compareHash(hash, this.simhash);
+            emit(this._id, s);
+        }
+    }
+    o.reduce = function (key, values) {
+        //
+        return values[0];
+        //
+    }
+    o.limit = 10;
+    o.out = {replace: 'results'};
+    o.scope = {hash: hash};
+
+    Question.mapReduce(o, function (err, model) {
+        model.find().sort({value: 1}).exec(function (err, data) {
+            var ids = [];
+            data.forEach(function (e, i, r) {
+                //
+                ids.push(e._id);
+                //
+            });
+            Question.find({_id: {$in: ids}}).populate('doctor').exec(function (err, result) {
+                var temp = [];
+                ids.forEach(function (e, i, a) {
+                    for (i = 0; i < result.length; i++) {
+                        if (result[i]._id.equals(e)) {
+                            temp.push(result[i]);
+                            continue;
+                        }
+                    }
+                })
+                res.jsonp(temp);
+            });
+
+        });
+    });
+    //Question.find({$and: [{tags: {$all: new_tags}}, {doctor: {$ne: null}}]}, function (err, doc) {
+    //    //
+    //    if (err) next(err);
+    //    res.jsonp(doc);
+    //    //
+    //});
+
+});
+router.get('/vcode/forget', function (req, res, next) {
 
     Doctor.count({phone: req.query.phone}, function (err, count) {
         if (err) next(err);
         if (count == 0) {
             throw new Error('此号码没有注册');
-        }else
-        {
+        } else {
             var http = require('http');
 
             var crypto = require('crypto');
@@ -145,6 +202,7 @@ router.get('/vcode/forget',function(req,res,next){
                     .toString('hex') // convert to hexadecimal format
                     .slice(0, len);   // return required number of characters
             }
+
             var rest = require('restler');
             var phone = req.query.phone;
             var time = Math.floor(Date.now() / 1000);
@@ -153,10 +211,9 @@ router.get('/vcode/forget',function(req,res,next){
             var url = 'http://iapi.iiyi.com/v1/other/sms/?mobile=' + phone + '&message=' + vcode + '&timestamp=' + time + '&signature=' + signature;
             rest.get(url).on('complete', function (data) {
                 var po = JSON.parse(data);
-                if(po.code == "400")
-                {
+                if (po.code == "400") {
                     throw new Error(po.msg);
-                }else {
+                } else {
                     req.session.phone = phone;
                     req.session.vcode = vcode;
                     res.jsonp('ok'); // auto convert to object
@@ -167,52 +224,51 @@ router.get('/vcode/forget',function(req,res,next){
 
 
 });
-router.get('/getkey',function(req,res,next){
+router.get('/getkey', function (req, res, next) {
     var rest = require('restler');
     var url = 'https://openapi.baidu.com/oauth/2.0/token?grant_type=client_credentials&client_id=nfN1CjSx3BAHQYRu8hNqGKx4&client_secret=8f22940fe7887171868178936ad0da0c';
     rest.get(url).on('complete', function (data) {
         //
-       res.jsonp(data);
+        res.jsonp(data);
         //
     });
 });
-router.post('/vcode/register',function(req,res,next){
-        Doctor.count({phone: req.body.phone}, function (err, count) {
-            if (err) next(err);
-            if (count > 0) {
-                throw new Error('此号码已经注册');
-            }else
-            {
-                var http = require('http');
+router.post('/vcode/register', function (req, res, next) {
+    Doctor.count({phone: req.body.phone}, function (err, count) {
+        if (err) next(err);
+        if (count > 0) {
+            throw new Error('此号码已经注册');
+        } else {
+            var http = require('http');
 
-                var crypto = require('crypto');
+            var crypto = require('crypto');
 
-                function randomValueHex(len) {
-                    return crypto.randomBytes(Math.ceil(len / 2))
-                        .toString('hex') // convert to hexadecimal format
-                        .slice(0, len);   // return required number of characters
-                }
-                var rest = require('restler');
-                var phone = req.body.phone;
-                var time = Math.floor(Date.now() / 1000);
-                var vcode = randomValueHex(4);
-                var signature = (crypto.createHash('md5').update(phone + ":" + vcode + ":" + time + ":" + "IIYI4N5UA3").digest('hex')).substring(0, 16);
-                var url = 'http://iapi.iiyi.com/v1/other/sms/?mobile=' + phone + '&message=' + vcode + '&timestamp=' + time + '&signature=' + signature;
-                rest.get(url).on('complete', function (data) {
-                    var po = JSON.parse(data);
-                    if(po.code == "400")
-                    {
-                        throw new Error(po.msg);
-                    }
-                    else {
-                        req.session.phone = phone;
-                        req.session.vcode = vcode;
-                        res.jsonp('ok'); // auto convert to object
-                    }
-                });
+            function randomValueHex(len) {
+                return crypto.randomBytes(Math.ceil(len / 2))
+                    .toString('hex') // convert to hexadecimal format
+                    .slice(0, len);   // return required number of characters
             }
 
-        })
+            var rest = require('restler');
+            var phone = req.body.phone;
+            var time = Math.floor(Date.now() / 1000);
+            var vcode = randomValueHex(4);
+            var signature = (crypto.createHash('md5').update(phone + ":" + vcode + ":" + time + ":" + "IIYI4N5UA3").digest('hex')).substring(0, 16);
+            var url = 'http://iapi.iiyi.com/v1/other/sms/?mobile=' + phone + '&message=' + vcode + '&timestamp=' + time + '&signature=' + signature;
+            rest.get(url).on('complete', function (data) {
+                var po = JSON.parse(data);
+                if (po.code == "400") {
+                    throw new Error(po.msg);
+                }
+                else {
+                    req.session.phone = phone;
+                    req.session.vcode = vcode;
+                    res.jsonp('ok'); // auto convert to object
+                }
+            });
+        }
+
+    })
 });
 router.delete('/doctors', function (req, res, next) {
     Doctor.findOneAndRemove({_id: req.query._id}, function (error, result) {
@@ -289,7 +345,7 @@ router.delete('/comments', function (req, res, next) {
 router.get('/questions/ids', function (req, res, next) {
 
 
-    Question.find().where('_id').in(req.query.ids==null?[]:req.query.ids).populate('doctor').exec(function(error, doc){
+    Question.find().where('_id').in(req.query.ids == null ? [] : req.query.ids).populate('doctor').exec(function (error, doc) {
         if (error) next(error);
         res.jsonp(doc);
     });
@@ -297,12 +353,12 @@ router.get('/questions/ids', function (req, res, next) {
     //   var j=2;
     //});
 });
-router.post('/doctor/changepassword',function(req,res,next){
+router.post('/doctor/changepassword', function (req, res, next) {
     //
-    Doctor.findOneAndUpdate({$and:[{_id:req.body._id},{password:req.body.data.oldPassword}]},{password:req.body.data.newPassword},function(error,doc){
-        if(error) next(error);
-        if(doc == null)
-        throw new Error('请输入正确的原始密码');
+    Doctor.findOneAndUpdate({$and: [{_id: req.body._id}, {password: req.body.data.oldPassword}]}, {password: req.body.data.newPassword}, function (error, doc) {
+        if (error) next(error);
+        if (doc == null)
+            throw new Error('请输入正确的原始密码');
         res.jsonp(doc);
     })
     //
@@ -360,13 +416,21 @@ router.get('/questions/answered', function (req, res, next) {
     });
 });
 router.get('/questions/doctor', function (req, res, next) {
-    Question.findRandom({$and: [{doctor: req.query.doctor}, {category: {$in: req.query.categorys == null ? [] : req.query.categorys}}]}).populate('doctor').limit(10).exec(function (err, doc) {
-        if (err) next(err);
-        res.jsonp(doc);
-    });
-    Question.syncRandom(function (err, result) {
-        console.log(result.updated);
-    });
+    if (req.query.minAnswerTime == null) {
+
+        Question.find({$and: [{doctor: req.query.doctor}, {category: {$in: req.query.categorys == null ? [] : req.query.categorys}}]}).populate('doctor').sort({answerTime: -1}).limit(10).exec(function (err, doc) {
+            if (err) next(err);
+            res.jsonp(doc);
+        });
+    } else {
+        Question.find({$and: [{doctor: req.query.doctor}, {answerTime: {$lt: req.query.minAnswerTime}},
+            {category: {$in: req.query.categorys == null ? [] : req.query.categorys}}]}).
+        populate('doctor').sort({answerTime: -1}).limit(10).exec(function (err, doc) {
+            if (err) next(err);
+            res.jsonp(doc);
+        });
+    }
+
 });
 router.get('/comments/question', function (req, res, next) {
     Comment.find({question: req.query.question}).populate('question').populate('doctor').exec(function (err, doc) {
@@ -399,15 +463,15 @@ router.delete('/questions', function (req, res, next) {
         });
 });
 router.post('/questions', function (req, res, next) {
-    req.body.forEach(function(e,i,a){
+    req.body.forEach(function (e, i, a) {
         //
-        var tags = nodejieba.extract(e.question,100);
-        var new_tags=[];
-        tags.forEach(function(e1,i1,a1){
-          new_tags.push(e1.substring(0, e1.lastIndexOf(':')));
+        var tags = nodejieba.extract(e.question, 100);
+        var new_tags = [];
+        tags.forEach(function (e1, i1, a1) {
+            new_tags.push(e1.substring(0, e1.lastIndexOf(':')));
         });
         e.tags = new_tags;
-
+        e.simhash = simhash(new_tags);
         //
     });
     Question.create(req.body, function (error, result) {
