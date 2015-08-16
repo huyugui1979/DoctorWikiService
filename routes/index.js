@@ -151,19 +151,19 @@ router.get('/questions/search', function (req, res, next) {
         return values[0];
         //
     }
-    o.limit = 10;
+    //o.limit = 10;
     o.out = {replace: 'results'};
     o.scope = {hash: hash};
 
     Question.mapReduce(o, function (err, model) {
-        model.find().sort({value: 1}).exec(function (err, data) {
+        model.find().sort({value: 1}).limit(10).exec(function (err, data) {
             var ids = [];
             data.forEach(function (e, i, r) {
                 //
                 ids.push(e._id);
                 //
             });
-            Question.find({_id: {$in: ids}}).populate('doctor').exec(function (err, result) {
+            Question.find({_id: {$in: ids}}).populate('doctor','name image').exec(function (err, result) {
                 var temp = [];
                 ids.forEach(function (e, i, a) {
                     for (i = 0; i < result.length; i++) {
