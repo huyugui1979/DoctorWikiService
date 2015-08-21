@@ -80,6 +80,10 @@ router.get('/doctors/id', function (req, res, next) {
         if (error) {
             throw new Error(error.message);
         }
+        if(doc == null)
+        {
+            throw  new Error('错误的医生id');
+        }
         res.jsonp(doc);
     })
     //
