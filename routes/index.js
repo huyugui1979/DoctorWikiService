@@ -74,10 +74,14 @@ router.get('/doctors/count', function (req, res, next) {
     })
 });
 //注册一个医生
-router.post('/doctors', function (req, res, next) {
+router.get('/doctors/id', function (req, res, next) {
     //
-
-
+    Doctor.findOne({_id: req.query._id}, function (error, doc) {
+        if (error) {
+            throw new Error(error.message);
+        }
+        res.jsonp(doc);
+    })
     //
 })
 router.post('/vcode/forget', function (req, res, next) {
@@ -163,7 +167,7 @@ router.get('/questions/search', function (req, res, next) {
                 ids.push(e._id);
                 //
             });
-            Question.find({_id: {$in: ids}}).populate('doctor','name image').exec(function (err, result) {
+            Question.find({_id: {$in: ids}}).populate('doctor', 'name image').exec(function (err, result) {
                 var temp = [];
                 ids.forEach(function (e, i, a) {
                     for (i = 0; i < result.length; i++) {
@@ -363,8 +367,8 @@ router.post('/doctor/changepassword', function (req, res, next) {
     })
     //
 });
-router.get('/questions/id',function(req,res,next){
-    Question.findOne({_id:req.query._id},function(err,doc){
+router.get('/questions/id', function (req, res, next) {
+    Question.findOne({_id: req.query._id}, function (err, doc) {
         if (err) next(err);
         res.jsonp(doc);
     });
@@ -428,12 +432,14 @@ router.get('/questions/doctor', function (req, res, next) {
             res.jsonp(doc);
         });
     } else {
-        Question.find({$and: [{doctor: req.query.doctor}, {answerTime: {$lt: req.query.minAnswerTime}},
-            {category: {$in: req.query.categorys == null ? [] : req.query.categorys}}]}).
-        populate('doctor').sort({answerTime: -1}).limit(10).exec(function (err, doc) {
-            if (err) next(err);
-            res.jsonp(doc);
-        });
+        Question.find({
+            $and: [{doctor: req.query.doctor}, {answerTime: {$lt: req.query.minAnswerTime}},
+                {category: {$in: req.query.categorys == null ? [] : req.query.categorys}}]
+        }).
+            populate('doctor').sort({answerTime: -1}).limit(10).exec(function (err, doc) {
+                if (err) next(err);
+                res.jsonp(doc);
+            });
     }
 
 });
