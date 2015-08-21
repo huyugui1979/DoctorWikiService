@@ -15,8 +15,8 @@ var QuestionSchema = new mongoose.Schema(
         comments:[{type: mongoose.Schema.Types.ObjectId, ref: 'Comment'}],
         doctor:{type: mongoose.Schema.Types.ObjectId, ref: 'Doctor'},
         likeNumber:{ type: Number, default: 0 },
-        simhash:[Number]
-
+        simhash:[Number],
+        collectionNumber:{ type: Number, default: 0 }
     });
 QuestionSchema.plugin(mongoosePaginate);
 QuestionSchema.plugin(random, { path: 'r' }); // by default `path` is `random`. It's used internally to store a random value on each doc.

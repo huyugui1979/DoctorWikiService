@@ -363,7 +363,12 @@ router.post('/doctor/changepassword', function (req, res, next) {
     })
     //
 });
-
+router.get('/questions/id',function(req,res,next){
+    Question.findOne({_id:req.query._id},function(err,doc){
+        if (err) next(err);
+        res.jsonp(doc);
+    });
+})
 router.get('/questions/unanswered', function (req, res, next) {
 
     Question.findRandom(
