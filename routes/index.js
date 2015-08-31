@@ -448,7 +448,7 @@ router.get('/questions/doctor', function (req, res, next) {
 
 });
 router.get('/comments/question', function (req, res, next) {
-    Comment.find({question: req.query.question}).populate('question').populate('doctor').exec(function (err, doc) {
+    Comment.find({question: req.query.question}).populate('question').populate('doctor').sort({commentTime:-1}).exec(function (err, doc) {
         if (err) next(err);
         res.jsonp(doc);
     });
@@ -485,7 +485,7 @@ router.post('/questions', function (req, res, next) {
         tags.forEach(function (e1, i1, a1) {
             new_tags.push(e1.substring(0, e1.lastIndexOf(':')));
         });
-        e.tags = new_tags;
+        //e.tags = new_tags;
         e.simhash = simhash(new_tags);
         //
     });

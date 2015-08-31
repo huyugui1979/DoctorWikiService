@@ -28,6 +28,7 @@ app.use(bodyParser.urlencoded({extended: true}));
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.all('*', function (req, res, next) {
+    //app.use(cors());
     res.header('Access-Control-Allow-Credentials', true);
     res.setHeader("Access-Control-Expose-Headers", "Set-Cookie");
     res.header("Access-Control-Allow-Origin",req.headers.origin);
