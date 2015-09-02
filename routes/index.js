@@ -449,7 +449,7 @@ router.get('/questions/doctor', function (req, res, next) {
 router.get('/comments/doctor', function (req, res, next) {
     if (req.query.minCommentTime == null) {
 
-        Comment.find({doctor: req.query.doctor}).sort({commentTime:-1}).limit(5).exec(function (err, doc) {
+        Comment.find({doctor: req.query.doctor}).sort({commentTime:-1}).limit(20).exec(function (err, doc) {
             if (err) next(err);
             //
             var ids = [];
@@ -489,7 +489,7 @@ router.get('/comments/doctor', function (req, res, next) {
         });
     } else {
         Comment.find({
-            $and: [{doctor: req.query.doctor}, {commentTime: {$lt: req.query.minCommentTime}}]}).sort({commentTime:-1}).limit(5).exec(function (err, doc) {
+            $and: [{doctor: req.query.doctor}, {commentTime: {$lt: req.query.minCommentTime}}]}).sort({commentTime:-1}).limit(20).exec(function (err, doc) {
             if (err) next(err);
             //
             var ids = [];
