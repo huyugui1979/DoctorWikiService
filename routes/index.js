@@ -80,8 +80,7 @@ router.get('/doctors/id', function (req, res, next) {
         if (error) {
             throw new Error(error.message);
         }
-        if(doc == null)
-        {
+        if (doc == null) {
             throw  new Error('错误的医生id');
         }
         res.jsonp(doc);
@@ -372,7 +371,7 @@ router.post('/doctor/changepassword', function (req, res, next) {
     //
 });
 router.get('/questions/id', function (req, res, next) {
-    Question.findOne({_id: req.query._id}).populate('doctor').exec( function (err, doc) {
+    Question.findOne({_id: req.query._id}).populate('doctor').exec(function (err, doc) {
         if (err) next(err);
         res.jsonp(doc);
     });
@@ -447,8 +446,93 @@ router.get('/questions/doctor', function (req, res, next) {
     }
 
 });
+router.get('/comments/doctor', function (req, res, next) {
+    if (req.query.minCommentTime == null) {
+
+        Comment.find({doctor: req.query.doctor}).sort({commentTime:-1}).limit(5).exec(function (err, doc) {
+            if (err) next(err);
+            //
+            var ids = [];
+            var time=[];
+            doc.forEach(function (e, i, r) {
+                //
+                var find=false;
+                for(k =0;k<ids.length;k++)
+                {
+                    if(e.question.equals(ids[k])) {
+                        find = true;
+                        continue;
+                    }
+                }
+                if(find ==false) {
+                    ids.push(e.question);
+                    time.push(e.commentTime);
+                }
+                //
+            });
+            Question.find({_id: {$in: ids}}).populate('doctor', 'name image').exec(function (err, result) {
+                var temp = [];
+                ids.forEach(function (ee, k, a) {
+                    for (i = 0; i < result.length; i++) {
+                        if (result[i]._id.equals(ee)) {
+                            result[i]._doc.commentTime=time[k];
+                            temp.push(result[i]);
+                            continue;
+                        }
+                    }
+                })
+                res.jsonp(temp);
+            });
+            //
+            //
+            //
+        });
+    } else {
+        Comment.find({
+            $and: [{doctor: req.query.doctor}, {commentTime: {$lt: req.query.minCommentTime}}]}).sort({commentTime:-1}).limit(5).exec(function (err, doc) {
+            if (err) next(err);
+            //
+            var ids = [];
+            var time=[];
+            doc.forEach(function (e, i, r) {
+                //
+                var find=false;
+                for(k =0;k<ids.length;k++)
+                {
+                    if(e.question.equals(ids[k])) {
+                        find = true;
+                        continue;
+                    }
+                }
+                if(find ==false) {
+                    ids.push(e.question);
+                    time.push(e.commentTime);
+                }
+                //
+            });
+            Question.find({_id: {$in: ids}}).populate('doctor', 'name image').exec(function (err, result) {
+
+                var temp = [];
+                ids.forEach(function (ee, k, a) {
+                    for (i = 0; i < result.length; i++) {
+                        if (result[i]._id.equals(ee)) {
+                            result[i]._doc.commentTime=time[k];
+                            temp.push(result[i]);
+                            continue;
+                        }
+                    }
+                })
+                res.jsonp(temp);
+            });
+            //
+            //
+            //
+        });
+    }
+
+})
 router.get('/comments/question', function (req, res, next) {
-    Comment.find({question: req.query.question}).populate('question').populate('doctor').sort({commentTime:-1}).exec(function (err, doc) {
+    Comment.find({question: req.query.question}).populate('question').populate('doctor').sort({commentTime: 1}).exec(function (err, doc) {
         if (err) next(err);
         res.jsonp(doc);
     });
