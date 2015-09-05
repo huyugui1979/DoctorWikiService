@@ -11,7 +11,12 @@ var users = require('./routes/users');
 var cors = require('cors');
 
 var app = express();
+var bodyParser = require('body-parser');
 
+
+
+app.use(bodyParser.json({limit: '50mb'}));
+app.use(bodyParser.urlencoded({limit: '50mb'}));
 //
 //app.use(cors());
 // view engine setup
@@ -36,11 +41,12 @@ app.all('*', function (req, res, next) {
     res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
     next();
 });
+app.use(bodyParser.json({ limit: '100mb' }))
 app.use(require('express-domain-middleware'));
 app.use('/', routes);
 app.use('/users', users);
 app.use(function errorHandler(err, req, res, next) {
-    console.log('error on request %d %s %s: %s', process.domain.id, req.method, req.url, err.stack);
+    console.log('error on request  %s %s: %s', req.method, req.url, err.stack);
     res.status(500).send(err.message);
 });
 
@@ -53,7 +59,10 @@ app.use(function (req, res, next) {
 });
 
 // error handlers
-
+app.use(function(err, req, res, next){
+    console.log(err.stack);
+    // additional logic, like emailing OPS staff w/ stack trace
+});
 // development error handler
 // will print stacktrace
 if (app.get('env') === 'development') {

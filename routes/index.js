@@ -6,7 +6,7 @@ var multiparty = require('multiparty');
 var simhash = require('simhash')('md5');
 
 
-mongoose.connect('mongodb://huyugui.f3322.org/medicalWiki');
+mongoose.connect('mongodb://127.0.0.1/medicalWiki');
 var nodejieba = require("nodejieba");
 //nodejieba.load({
 //    userDict: '../dict/user.dict'
@@ -411,6 +411,7 @@ router.get('/questions/', function (req, res, next) {
     );
 
 });
+
 router.put('/questions', function (req, res, next) {
     //
     Question.findOneAndUpdate({_id: req.body._id}, req.body, function (err, doc) {
