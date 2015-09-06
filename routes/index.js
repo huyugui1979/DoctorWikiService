@@ -6,11 +6,13 @@ var multiparty = require('multiparty');
 var simhash = require('simhash')('md5');
 
 
-mongoose.connect('mongodb://127.0.0.1/medicalWiki');
+var db = mongoose.connect('mongodb://huyugui.f3322.org/medicalWiki');
 var nodejieba = require("nodejieba");
 //nodejieba.load({
 //    userDict: '../dict/user.dict'
 //});
+
+
 nodejieba.load({
     userDict: '../dict/sougou.dict'
 });
@@ -126,6 +128,7 @@ router.get('/vcode/register', function (req, res, next) {
 });
 router.get('/questions/search', function (req, res, next) {
     //
+    console.time("search");
     var tags = nodejieba.extract(req.query.search, 100);
     var new_tags = [];
     tags.forEach(function (e1, i1, a1) {
@@ -163,6 +166,7 @@ router.get('/questions/search', function (req, res, next) {
     o.scope = {hash: hash};
 
     Question.mapReduce(o, function (err, model) {
+
         model.find().sort({value: 1}).limit(10).exec(function (err, data) {
             var ids = [];
             data.forEach(function (e, i, r) {
@@ -378,17 +382,14 @@ router.get('/questions/id', function (req, res, next) {
 })
 router.get('/questions/unanswered', function (req, res, next) {
 
-    Question.findRandom(
-        {$and: [{doctor: null}, {category: {$in: req.query.categorys == null ? [] : req.query.categorys}}]}, {}, {limit: 10}, function (err, results) {
+    console.time("dbsave");
+
+    Question.find(
+            {$and: [{doctor: null},{ random : { $near : [Math.random(), Math.random()] } }, {category: {$in: req.query.categorys == null ? [] : req.query.categorys}}]}).limit(10).exec(function (err, results) {
             if (err) next(err);
             res.jsonp(results);
+            console.timeEnd("dbsave");
         });
-    Question.syncRandom(function (err, result) {
-        console.log(result.updated);
-    });
-    //Question.find({},function(err,result){
-    //   var j=2;
-    //});
 });
 router.get('/questions/', function (req, res, next) {
     //
@@ -420,20 +421,22 @@ router.put('/questions', function (req, res, next) {
     });
 });
 router.get('/questions/answered', function (req, res, next) {
-    Question.findRandom({$and: [{doctor: {$ne: null}}, {category: {$in: req.query.categorys == null ? [] : req.query.categorys}}]}).populate('doctor').limit(10).exec(function (err, doc) {
+
+    Question.find({$and: [{doctor: {$ne: null}}, { random : { $near : [Math.random(), Math.random()] } },{category: {$in: req.query.categorys == null ? [] : req.query.categorys}}]}).populate('doctor').limit(10).exec(function (err, doc) {
         if (err) next(err);
         res.jsonp(doc);
     });
-    Question.syncRandom(function (err, result) {
-        console.log(result.updated);
-    });
+
 });
 router.get('/questions/doctor', function (req, res, next) {
+    console.time("dbsave");
+
     if (req.query.minAnswerTime == null) {
 
         Question.find({$and: [{doctor: req.query.doctor}, {category: {$in: req.query.categorys == null ? [] : req.query.categorys}}]}).populate('doctor').sort({answerTime: -1}).limit(10).exec(function (err, doc) {
             if (err) next(err);
             res.jsonp(doc);
+            console.endTime("dbsave");
         });
     } else {
         Question.find({
@@ -443,6 +446,7 @@ router.get('/questions/doctor', function (req, res, next) {
             populate('doctor').sort({answerTime: -1}).limit(10).exec(function (err, doc) {
                 if (err) next(err);
                 res.jsonp(doc);
+                console.endTime("dbsave");
             });
     }
 
