@@ -6,7 +6,7 @@ var multiparty = require('multiparty');
 var simhash = require('simhash')('md5');
 
 
-var db = mongoose.connect('mongodb://huyugui.f3322.org/medicalWiki');
+var db = mongoose.connect('mongodb://127.0.0.1/medicalWiki');
 var nodejieba = require("nodejieba");
 //nodejieba.load({
 //    userDict: '../dict/user.dict'
@@ -136,7 +136,6 @@ router.get('/questions/search', function (req, res, next) {
     });
     //
     var hash = simhash(new_tags);
-
     var o = {};
     //
     o.map = function () {
@@ -167,6 +166,7 @@ router.get('/questions/search', function (req, res, next) {
 
     Question.mapReduce(o, function (err, model) {
 
+        console.timeEnd("search");
         model.find().sort({value: 1}).limit(10).exec(function (err, data) {
             var ids = [];
             data.forEach(function (e, i, r) {
@@ -534,12 +534,13 @@ router.get('/comments/doctor', function (req, res, next) {
             //
         });
     }
-
 })
 router.get('/comments/question', function (req, res, next) {
+    console.time("comment");
     Comment.find({question: req.query.question}).populate('question').populate('doctor').sort({commentTime: 1}).exec(function (err, doc) {
         if (err) next(err);
         res.jsonp(doc);
+        console.timeEnd("comment");
     });
 });
 
@@ -584,7 +585,5 @@ router.post('/questions', function (req, res, next) {
         res.jsonp(result.length);
     });
 });
-//
-
 //
 module.exports = router;
