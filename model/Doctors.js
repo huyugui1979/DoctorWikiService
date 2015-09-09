@@ -9,6 +9,7 @@ var mongoosePaginate = require('mongoose-paginate');
 var DoctorSchema = new mongoose.Schema(
     {
         name: String,
+        trueName:String,
         phone:String,
         age:Number,
         password:String,
