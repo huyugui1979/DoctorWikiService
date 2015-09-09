@@ -166,7 +166,7 @@ router.get('/questions/search', function (req, res, next) {
 
     Question.mapReduce(o, function (err, model) {
 
-        console.endTime("search");
+        console.timeEnd("search");
         model.find().sort({value: 1}).limit(10).exec(function (err, data) {
             var ids = [];
             data.forEach(function (e, i, r) {
