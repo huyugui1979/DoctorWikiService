@@ -21,10 +21,12 @@ require('../model/Doctors');
 require('../model/Questions');
 require('../model/Categories');
 require('../model/Doctors');
+require('../model/Versions')
 var Doctor = mongoose.model('Doctor');
 var Question = mongoose.model('Question');
 var Category = mongoose.model('Category');
 var Comment = mongoose.model('Comment');
+var Version = mongoose.model('Version');
 //
 
 //
@@ -69,6 +71,21 @@ router.post('/portrait', function (req, res, next) {
     });
 });
 //
+router.get('/versions',function(req,res,next){
+    Version.findOne({},function(error,doc){
+        //
+        if (error) next(error);
+        res.jsonp(doc);
+        //
+    });
+})
+router.post('/versions/',function(req,res,next){
+    var v = new Version(req.query.version);
+    v.save(function(error,doc){
+        if (err) next(err);
+        res.jsonp(doc);
+    })
+})
 router.get('/doctors/count', function (req, res, next) {
     Doctor.count({}, function (err, count) {
         if (err) next(err);
@@ -105,11 +122,7 @@ router.post('/vcode/forget', function (req, res, next) {
     }
     //
 });
-router.get('/statics/likenumber', function (req, res, next) {
-    //
 
-    //
-});
 router.get('/vcode/register', function (req, res, next) {
     //
     if (req.session.phone == req.query.phone && req.session.vcode == req.query.vcode) {
