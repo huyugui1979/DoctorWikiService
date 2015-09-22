@@ -3,7 +3,6 @@
  */
 var mongoose = require('mongoose');
 var mongoosePaginate = require('mongoose-paginate');
-var random = require('mongoose-random');
 var QuestionSchema = new mongoose.Schema(
     {
         category:String,
@@ -16,8 +15,8 @@ var QuestionSchema = new mongoose.Schema(
         doctor:{type: mongoose.Schema.Types.ObjectId, ref: 'Doctor'},
         likeNumber:{ type: Number, default: 0 },
         simhash:[Number],
+        random:[Number],
         collectionNumber:{ type: Number, default: 0 }
     });
 QuestionSchema.plugin(mongoosePaginate);
-QuestionSchema.plugin(random, { path: 'r' }); // by default `path` is `random`. It's used internally to store a random value on each doc.
 mongoose.model('Question', QuestionSchema);

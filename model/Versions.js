@@ -6,6 +6,7 @@ var mongoose = require('mongoose');
 var  VersionSchema = new mongoose.Schema(
     {
        currentVersion:String,
-        updateUrl:String
+        androidUpdateUrl:String,
+        iosUpdateUrl:String
     });
 mongoose.model('Version', VersionSchema);
