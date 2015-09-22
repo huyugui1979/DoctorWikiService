@@ -6,7 +6,7 @@ var multiparty = require('multiparty');
 var simhash = require('simhash')('md5');
 
 
-var db = mongoose.connect('mongodb://113.31.89.204/medicalWiki');
+var db = mongoose.connect('mongodb://127.0.0.1/medicalWiki');
 var nodejieba = require("nodejieba");
 //nodejieba.load({
 //    userDict: '../dict/user.dict'
