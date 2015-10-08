@@ -3,10 +3,11 @@ var router = express.Router();
 var fs = require('fs');
 var mongoose = require('mongoose');
 var multiparty = require('multiparty');
+var async = require('async');
 var simhash = require('simhash')('md5');
 
 
-var db = mongoose.connect('mongodb://127.0.0.1/medicalWiki');
+var db = mongoose.connect('mongodb://113.31.89.204/medicalWiki');
 var nodejieba = require("nodejieba");
 //nodejieba.load({
 //    userDict: '../dict/user.dict'
@@ -71,17 +72,17 @@ router.post('/portrait', function (req, res, next) {
     });
 });
 //
-router.get('/versions',function(req,res,next){
-    Version.findOne({},function(error,doc){
+router.get('/versions', function (req, res, next) {
+    Version.findOne({}, function (error, doc) {
         //
         if (error) next(error);
         res.jsonp(doc);
         //
     });
 })
-router.post('/versions/',function(req,res,next){
+router.post('/versions/', function (req, res, next) {
     var v = new Version(req.query.version);
-    v.save(function(error,doc){
+    v.save(function (error, doc) {
         if (err) next(err);
         res.jsonp(doc);
     })
@@ -331,9 +332,34 @@ router.get('/doctors', function (req, res, next) {
             }
         },
         function (error, result) {
-            if (error) next(error);
-            console.log(result);
-            res.jsonp(result);
+            //
+            var asyncTasks=[];
+            //
+            result.forEach(function(e){
+                //
+                asyncTasks.push(function(callback) {
+                    async.parallel([
+                        function(callback) {
+                            Question.count({doctor: e._id}, function (err, doc) {
+                                e._doc.acceptCount = doc;
+                                callback();
+                            })
+                        },
+                        function(callback){
+                            Comment.count({doctor: e._id}, function (err, doc) {
+                                e._doc.commentCount = doc;
+                                callback();
+                            })
+                        }],function() {
+                            callback();
+                    });
+                });
+            });
+            async.parallel(asyncTasks,function(){
+                if (error) next(error);
+                res.jsonp(result);
+            })
+            //
 
         }
     );
@@ -344,10 +370,139 @@ router.get('/doctors', function (req, res, next) {
 router.get('/category', function (req, res, next) {
     //
     Category.find({}, function (err, result) {
+
         if (err) next(err);
         res.jsonp(result);
     });
     //
+});
+router.get('/doctor/comment',function(req,res,next){
+    if(req.query.beginTime != null && req.query.endTime != null) {
+        Comment.find(
+            {
+                $and: [{doctor: mongoose.Types.ObjectId(req.query.doctor)}, {
+                    commentTime: {
+                        $gte: new Date(req.query.beginTime),
+                        $lte: new Date(req.query.endTime)
+                    }
+                }]
+            }).sort({commentTime:1}).exec(
+            function (err, doc) {
+                if (err) next(err);
+                res.jsonp(doc);
+
+            });
+    }else
+    {
+        Comment.find(
+
+            {doctor: mongoose.Types.ObjectId(req.query.doctor)}).
+        sort({commentTime:1}).exec(
+            function (err, doc) {
+                if (err) next(err);
+                res.jsonp(doc);
+
+            });
+    }
+});
+router.get('/doctor/count',function(req,res,next){
+    if(req.query.beginTime != null && req.query.endTime != null) {
+        Question.find(
+            {
+                $and: [{doctor: mongoose.Types.ObjectId(req.query.doctor)}, {
+                    answerTime: {
+                        $gte: new Date(req.query.beginTime),
+                        $lte: new Date(req.query.endTime)
+                    }
+                }]
+            }).sort({answerTime:1}).exec(
+            function (err, doc) {
+                if (err) next(err);
+                res.jsonp(doc);
+
+            });
+    }else
+    {
+        Question.find(
+
+            {doctor: mongoose.Types.ObjectId(req.query.doctor)}).
+        sort({answerTime:1}).exec(
+            function (err, doc) {
+                if (err) next(err);
+                res.jsonp(doc);
+
+            });
+    }
+});
+
+router.get('/category/admin', function (req, res, next) {
+    console.log("category/amdin")
+    Category.find({}, function (err, result) {
+
+        var asyncTasks=[];
+        //
+        result.forEach(function(e){
+            //
+            asyncTasks.push(function(callback){
+                //
+                e._doc.count = [];
+                var asyncTasks1=[];
+                e.child_depart.forEach(function (e1) {
+
+                    // We don't actually execute the async action here
+                    // We add a function containing it to an array of "tasks"
+                    asyncTasks1.push(function (callback2) {
+                        //
+                        var obj = {category: e1, unacceptCount: 0, acceptCount: 0};
+                        //
+                        async.parallel([
+                            function (callback3) {
+                                console.time("acceptCount");
+                                Question.count({$and: [{category: e1}, {doctor: {$ne: null}}]}, function (err, count) {
+                                    if (err) callback2(err);
+                                    obj.acceptCount = count;
+                                    console.timeEnd("acceptCount");
+                                    callback3();
+                                })
+                            },
+                            function (callback4) {
+                                console.time("unacceptCount");
+                                Question.count({$and: [{category: e1}, {doctor: null}]}, function (err, count) {
+                                    if (err) callback3(err);
+                                    obj.unacceptCount = count;
+                                    console.timeEnd("unacceptCount");
+                                    callback4();
+                                })
+                            }], function (err) {
+                            e._doc.count.push(obj);
+                           // console.log(JSON.stringify(e._doc));
+                            callback2(err);
+                        });
+                    });
+                });
+                async.parallel(asyncTasks1,function(){
+                    callback();
+                })
+            })
+        });
+        async.parallel(asyncTasks,function(){
+            if (err) next(err);
+            res.jsonp(result);
+        })
+
+    });
+});
+router.get('/questions/acceptCount', function (req, res, next) {
+    Question.count({$and: [{category: req.query.category}, {doctor: {$ne: null}}]}, function (err, count) {
+        if (err) next(err);
+        res.jsonp(count);
+    })
+});
+router.get('/questions/unacceptCount', function (req, res, next) {
+    Question.count({$and: [{category: req.query.category}, {doctor: null}]}, function (err, count) {
+        if (err) next(err);
+        res.jsonp(count);
+    })
 });
 router.get('/questions/count', function (req, res, next) {
     Question.count({category: req.query.category}, function (err, count) {
@@ -398,7 +553,7 @@ router.get('/questions/unanswered', function (req, res, next) {
     console.time("dbsave");
 
     Question.find(
-            {$and: [{doctor: null},{ random : { $near : [Math.random(), Math.random()] } }, {category: {$in: req.query.categorys == null ? [] : req.query.categorys}}]}).limit(10).exec(function (err, results) {
+        {$and: [{doctor: null}, {random: {$near: [Math.random(), Math.random()]}}, {category: {$in: req.query.categorys == null ? [] : req.query.categorys}}]}).limit(10).exec(function (err, results) {
             if (err) next(err);
             res.jsonp(results);
             console.timeEnd("dbsave");
@@ -435,7 +590,7 @@ router.put('/questions', function (req, res, next) {
 });
 router.get('/questions/answered', function (req, res, next) {
 
-    Question.find({$and: [{doctor: {$ne: null}}, { random : { $near : [Math.random(), Math.random()] } },{category: {$in: req.query.categorys == null ? [] : req.query.categorys}}]}).populate('doctor').limit(10).exec(function (err, doc) {
+    Question.find({$and: [{doctor: {$ne: null}}, {random: {$near: [Math.random(), Math.random()]}}, {category: {$in: req.query.categorys == null ? [] : req.query.categorys}}]}).populate('doctor').limit(10).exec(function (err, doc) {
         if (err) next(err);
         res.jsonp(doc);
     });
@@ -467,22 +622,21 @@ router.get('/questions/doctor', function (req, res, next) {
 router.get('/comments/doctor', function (req, res, next) {
     if (req.query.minCommentTime == null) {
 
-        Comment.find({doctor: req.query.doctor}).sort({commentTime:-1}).limit(20).exec(function (err, doc) {
+        Comment.find({doctor: req.query.doctor}).sort({commentTime: -1}).limit(20).exec(function (err, doc) {
             if (err) next(err);
             //
             var ids = [];
-            var time=[];
+            var time = [];
             doc.forEach(function (e, i, r) {
                 //
-                var find=false;
-                for(k =0;k<ids.length;k++)
-                {
-                    if(e.question.equals(ids[k])) {
+                var find = false;
+                for (k = 0; k < ids.length; k++) {
+                    if (e.question.equals(ids[k])) {
                         find = true;
                         continue;
                     }
                 }
-                if(find ==false) {
+                if (find == false) {
                     ids.push(e.question);
                     time.push(e.commentTime);
                 }
@@ -493,7 +647,7 @@ router.get('/comments/doctor', function (req, res, next) {
                 ids.forEach(function (ee, k, a) {
                     for (i = 0; i < result.length; i++) {
                         if (result[i]._id.equals(ee)) {
-                            result[i]._doc.commentTime=time[k];
+                            result[i]._doc.commentTime = time[k];
                             temp.push(result[i]);
                             continue;
                         }
@@ -507,22 +661,22 @@ router.get('/comments/doctor', function (req, res, next) {
         });
     } else {
         Comment.find({
-            $and: [{doctor: req.query.doctor}, {commentTime: {$lt: req.query.minCommentTime}}]}).sort({commentTime:-1}).limit(20).exec(function (err, doc) {
+            $and: [{doctor: req.query.doctor}, {commentTime: {$lt: req.query.minCommentTime}}]
+        }).sort({commentTime: -1}).limit(20).exec(function (err, doc) {
             if (err) next(err);
             //
             var ids = [];
-            var time=[];
+            var time = [];
             doc.forEach(function (e, i, r) {
                 //
-                var find=false;
-                for(k =0;k<ids.length;k++)
-                {
-                    if(e.question.equals(ids[k])) {
+                var find = false;
+                for (k = 0; k < ids.length; k++) {
+                    if (e.question.equals(ids[k])) {
                         find = true;
                         continue;
                     }
                 }
-                if(find ==false) {
+                if (find == false) {
                     ids.push(e.question);
                     time.push(e.commentTime);
                 }
@@ -534,7 +688,7 @@ router.get('/comments/doctor', function (req, res, next) {
                 ids.forEach(function (ee, k, a) {
                     for (i = 0; i < result.length; i++) {
                         if (result[i]._id.equals(ee)) {
-                            result[i]._doc.commentTime=time[k];
+                            result[i]._doc.commentTime = time[k];
                             temp.push(result[i]);
                             continue;
                         }
