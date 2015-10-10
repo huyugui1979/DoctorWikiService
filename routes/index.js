@@ -5,7 +5,7 @@ var mongoose = require('mongoose');
 var multiparty = require('multiparty');
 var async = require('async');
 var simhash = require('simhash')('md5');
-
+var utf8 = require('utf8');
 
 var db = mongoose.connect('mongodb://113.31.89.204/medicalWiki');
 var nodejieba = require("nodejieba");
@@ -142,7 +142,7 @@ router.get('/vcode/register', function (req, res, next) {
 });
 router.get('/questions/search', function (req, res, next) {
     //
-    console.time("search");
+
     var tags = nodejieba.extract(req.query.search, 100);
     var new_tags = [];
     tags.forEach(function (e1, i1, a1) {
@@ -180,7 +180,7 @@ router.get('/questions/search', function (req, res, next) {
 
     Question.mapReduce(o, function (err, model) {
 
-        console.timeEnd("search");
+
         model.find().sort({value: 1}).limit(10).exec(function (err, data) {
             var ids = [];
             data.forEach(function (e, i, r) {
@@ -222,16 +222,14 @@ router.get('/vcode/forget', function (req, res, next) {
 
             var crypto = require('crypto');
 
-            function randomValueHex(len) {
-                return crypto.randomBytes(Math.ceil(len / 2))
-                    .toString('hex') // convert to hexadecimal format
-                    .slice(0, len);   // return required number of characters
-            }
-
             var rest = require('restler');
             var phone = req.query.phone;
             var time = Math.floor(Date.now() / 1000);
-            var vcode = randomValueHex(4);
+            var numbers = new Array(6);
+            for (var i = 0; i < numbers.length; i++) {
+                numbers[i] = randomIntInc(1,10)
+            }
+            var vcode =utf8.encode("您的验证码:"+numbers+",用于智能知识库重置密码");
             var signature = (crypto.createHash('md5').update(phone + ":" + vcode + ":" + time + ":" + "IIYI4N5UA3").digest('hex')).substring(0, 16);
             var url = 'http://iapi.iiyi.com/v1/other/sms/?mobile=' + phone + '&message=' + vcode + '&timestamp=' + time + '&signature=' + signature;
             rest.get(url).on('complete', function (data) {
@@ -240,7 +238,7 @@ router.get('/vcode/forget', function (req, res, next) {
                     throw new Error(po.msg);
                 } else {
                     req.session.phone = phone;
-                    req.session.vcode = vcode;
+                    req.session.vcode = numbers;
                     res.jsonp('ok'); // auto convert to object
                 }
             });
@@ -268,16 +266,19 @@ router.post('/vcode/register', function (req, res, next) {
 
             var crypto = require('crypto');
 
-            function randomValueHex(len) {
-                return crypto.randomBytes(Math.ceil(len / 2))
-                    .toString('hex') // convert to hexadecimal format
-                    .slice(0, len);   // return required number of characters
+            function randomIntInc (low, high) {
+                return Math.floor(Math.random() * (high - low + 1) + low);
             }
 
             var rest = require('restler');
             var phone = req.body.phone;
             var time = Math.floor(Date.now() / 1000);
-            var vcode = randomValueHex(4);
+            var numbers ="";
+            for (var i = 0; i < 6; i++) {
+                numbers = numbers+randomIntInc(1,10)
+            }
+
+            var vcode =utf8.encode("您的验证码:"+numbers+",用于智能知识库注册");
             var signature = (crypto.createHash('md5').update(phone + ":" + vcode + ":" + time + ":" + "IIYI4N5UA3").digest('hex')).substring(0, 16);
             var url = 'http://iapi.iiyi.com/v1/other/sms/?mobile=' + phone + '&message=' + vcode + '&timestamp=' + time + '&signature=' + signature;
             rest.get(url).on('complete', function (data) {
@@ -287,7 +288,7 @@ router.post('/vcode/register', function (req, res, next) {
                 }
                 else {
                     req.session.phone = phone;
-                    req.session.vcode = vcode;
+                    req.session.vcode = numbers;
                     res.jsonp('ok'); // auto convert to object
                 }
             });
@@ -436,7 +437,7 @@ router.get('/doctor/count',function(req,res,next){
 });
 
 router.get('/category/admin', function (req, res, next) {
-    console.log("category/amdin")
+
     Category.find({}, function (err, result) {
 
         var asyncTasks=[];
@@ -457,20 +458,20 @@ router.get('/category/admin', function (req, res, next) {
                         //
                         async.parallel([
                             function (callback3) {
-                                console.time("acceptCount");
+
                                 Question.count({$and: [{category: e1}, {doctor: {$ne: null}}]}, function (err, count) {
                                     if (err) callback2(err);
                                     obj.acceptCount = count;
-                                    console.timeEnd("acceptCount");
+
                                     callback3();
                                 })
                             },
                             function (callback4) {
-                                console.time("unacceptCount");
+
                                 Question.count({$and: [{category: e1}, {doctor: null}]}, function (err, count) {
                                     if (err) callback3(err);
                                     obj.unacceptCount = count;
-                                    console.timeEnd("unacceptCount");
+
                                     callback4();
                                 })
                             }], function (err) {
@@ -550,13 +551,13 @@ router.get('/questions/id', function (req, res, next) {
 })
 router.get('/questions/unanswered', function (req, res, next) {
 
-    console.time("dbsave");
+
 
     Question.find(
         {$and: [{doctor: null}, {random: {$near: [Math.random(), Math.random()]}}, {category: {$in: req.query.categorys == null ? [] : req.query.categorys}}]}).limit(10).exec(function (err, results) {
             if (err) next(err);
             res.jsonp(results);
-            console.timeEnd("dbsave");
+
         });
 });
 router.get('/questions/', function (req, res, next) {
@@ -573,7 +574,7 @@ router.get('/questions/', function (req, res, next) {
         },
         function (error, result) {
             if (error) next(error);
-            console.log(result);
+
             res.jsonp(result);
 
         }
@@ -597,24 +598,35 @@ router.get('/questions/answered', function (req, res, next) {
 
 });
 router.get('/questions/doctor', function (req, res, next) {
-    console.time("dbsave");
 
-    if (req.query.minAnswerTime == null) {
 
-        Question.find({$and: [{doctor: req.query.doctor}, {category: {$in: req.query.categorys == null ? [] : req.query.categorys}}]}).populate('doctor').sort({answerTime: -1}).limit(10).exec(function (err, doc) {
+    if (req.query.minAnswerTime == null && req.query.maxAnswerTime == null) {
+
+        Question.find({$and: [{doctor: req.query.doctor} ]}).populate('doctor').sort({answerTime: -1}).limit(10).exec(function (err, doc) {
             if (err) next(err);
             res.jsonp(doc);
-            console.endTime("dbsave");
+
         });
-    } else {
+    } else if((req.query.minAnswerTime != null)) {
         Question.find({
-            $and: [{doctor: req.query.doctor}, {answerTime: {$lt: req.query.minAnswerTime}},
-                {category: {$in: req.query.categorys == null ? [] : req.query.categorys}}]
+            $and: [{doctor: req.query.doctor}, {answerTime: {$lt: req.query.minAnswerTime}}
+               ]
         }).
             populate('doctor').sort({answerTime: -1}).limit(10).exec(function (err, doc) {
                 if (err) next(err);
                 res.jsonp(doc);
-                console.endTime("dbsave");
+
+            });
+    }
+    else if((req.query.maxAnswerTime != null)) {
+        Question.find({
+            $and: [{doctor: req.query.doctor}, {answerTime: {$gt: req.query.maxAnswerTime}}
+            ]
+        }).
+            populate('doctor').sort({answerTime: -1}).limit(10).exec(function (err, doc) {
+                if (err) next(err);
+                res.jsonp(doc);
+
             });
     }
 
@@ -703,11 +715,11 @@ router.get('/comments/doctor', function (req, res, next) {
     }
 })
 router.get('/comments/question', function (req, res, next) {
-    console.time("comment");
+
     Comment.find({question: req.query.question}).populate('question').populate('doctor').sort({commentTime: 1}).exec(function (err, doc) {
         if (err) next(err);
         res.jsonp(doc);
-        console.timeEnd("comment");
+
     });
 });
 
