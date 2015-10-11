@@ -93,9 +93,10 @@ router.get('/doctors/count', function (req, res, next) {
         res.jsonp(count);
     })
 });
-//注册一个医生
+
 router.get('/doctors/id', function (req, res, next) {
     //
+
     Doctor.findOne({_id: req.query._id}, function (error, doc) {
         if (error) {
             throw new Error(error.message);
@@ -104,7 +105,11 @@ router.get('/doctors/id', function (req, res, next) {
             throw  new Error('错误的医生id');
         }
         res.jsonp(doc);
-    })
+
+
+    });
+
+
     //
 })
 router.post('/vcode/forget', function (req, res, next) {
@@ -352,7 +357,7 @@ router.get('/doctors', function (req, res, next) {
                                 callback();
                             })
                         }],function() {
-                            callback();
+                        callback();
                     });
                 });
             });
@@ -398,7 +403,7 @@ router.get('/doctor/comment',function(req,res,next){
         Comment.find(
 
             {doctor: mongoose.Types.ObjectId(req.query.doctor)}).
-        sort({commentTime:1}).exec(
+            sort({commentTime:1}).exec(
             function (err, doc) {
                 if (err) next(err);
                 res.jsonp(doc);
@@ -427,7 +432,7 @@ router.get('/doctor/count',function(req,res,next){
         Question.find(
 
             {doctor: mongoose.Types.ObjectId(req.query.doctor)}).
-        sort({answerTime:1}).exec(
+            sort({answerTime:1}).exec(
             function (err, doc) {
                 if (err) next(err);
                 res.jsonp(doc);
@@ -476,7 +481,7 @@ router.get('/category/admin', function (req, res, next) {
                                 })
                             }], function (err) {
                             e._doc.count.push(obj);
-                           // console.log(JSON.stringify(e._doc));
+                            // console.log(JSON.stringify(e._doc));
                             callback2(err);
                         });
                     });
@@ -491,6 +496,22 @@ router.get('/category/admin', function (req, res, next) {
             res.jsonp(result);
         })
 
+    });
+});
+router.get('/questions/statics',function(req,res,next){
+    var doc={questionCount:0,commentCount:0}
+    async.parallel([function(callback){
+        Question.count({doctor:req.query.docotor}).exec(function(err,res){
+            doc.questionCount=res;
+            callback();
+        })
+    },function(callback){
+        Comment.count({doctor:req.query.docotor}).exec(function(err,res){
+            doc.commentCount=res;
+            callback();
+        })
+    }],function(){
+        res.jsonp(doc);
     });
 });
 router.get('/questions/acceptCount', function (req, res, next) {
@@ -610,7 +631,7 @@ router.get('/questions/doctor', function (req, res, next) {
     } else if((req.query.minAnswerTime != null)) {
         Question.find({
             $and: [{doctor: req.query.doctor}, {answerTime: {$lt: req.query.minAnswerTime}}
-               ]
+            ]
         }).
             populate('doctor').sort({answerTime: -1}).limit(10).exec(function (err, doc) {
                 if (err) next(err);
