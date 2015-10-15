@@ -7,7 +7,7 @@ var async = require('async');
 var simhash = require('simhash')('md5');
 var utf8 = require('utf8');
 
-var db = mongoose.connect('mongodb://113.31.89.204/medicalWiki');
+var db = mongoose.connect('mongodb://127.0.0.1/medicalWiki');
 var nodejieba = require("nodejieba");
 //nodejieba.load({
 //    userDict: '../dict/user.dict'
@@ -384,7 +384,7 @@ router.get('/category', function (req, res, next) {
 });
 router.get('/doctor/comment',function(req,res,next){
     if(req.query.beginTime != null && req.query.endTime != null) {
-        Comment.find(
+        Comment.count(
             {
                 $and: [{doctor: mongoose.Types.ObjectId(req.query.doctor)}, {
                     commentTime: {
@@ -392,7 +392,7 @@ router.get('/doctor/comment',function(req,res,next){
                         $lte: new Date(req.query.endTime)
                     }
                 }]
-            }).sort({commentTime:1}).exec(
+            }).exec(
             function (err, doc) {
                 if (err) next(err);
                 res.jsonp(doc);
@@ -400,10 +400,10 @@ router.get('/doctor/comment',function(req,res,next){
             });
     }else
     {
-        Comment.find(
+        Comment.count(
 
-            {doctor: mongoose.Types.ObjectId(req.query.doctor)}).
-            sort({commentTime:1}).exec(
+            {doctor: mongoose.Types.ObjectId(req.query.doctor)})
+            .exec(
             function (err, doc) {
                 if (err) next(err);
                 res.jsonp(doc);
@@ -413,7 +413,7 @@ router.get('/doctor/comment',function(req,res,next){
 });
 router.get('/doctor/count',function(req,res,next){
     if(req.query.beginTime != null && req.query.endTime != null) {
-        Question.find(
+        Question.count(
             {
                 $and: [{doctor: mongoose.Types.ObjectId(req.query.doctor)}, {
                     answerTime: {
@@ -421,7 +421,7 @@ router.get('/doctor/count',function(req,res,next){
                         $lte: new Date(req.query.endTime)
                     }
                 }]
-            }).sort({answerTime:1}).exec(
+            }).exec(
             function (err, doc) {
                 if (err) next(err);
                 res.jsonp(doc);
@@ -429,10 +429,10 @@ router.get('/doctor/count',function(req,res,next){
             });
     }else
     {
-        Question.find(
+        Question.count(
 
             {doctor: mongoose.Types.ObjectId(req.query.doctor)}).
-            sort({answerTime:1}).exec(
+           exec(
             function (err, doc) {
                 if (err) next(err);
                 res.jsonp(doc);
@@ -527,7 +527,7 @@ router.get('/questions/unacceptCount', function (req, res, next) {
     })
 });
 router.get('/questions/count', function (req, res, next) {
-    Question.count({category: req.query.category}, function (err, count) {
+    Question.count({category: req.query.category,doctor:req.query.doctor}, function (err, count) {
         if (err) next(err);
         res.jsonp(count);
     })
@@ -584,7 +584,7 @@ router.get('/questions/unanswered', function (req, res, next) {
 router.get('/questions/', function (req, res, next) {
     //
     Question.paginate(
-        {category: req.query.category},
+        {category: req.query.category,doctor:req.query.doctor},
         {
             page: req.query.pageNo,
             limit: req.query.pageNumber,
