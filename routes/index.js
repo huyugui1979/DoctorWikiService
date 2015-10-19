@@ -7,12 +7,16 @@ var async = require('async');
 var simhash = require('simhash')('md5');
 var utf8 = require('utf8');
 
-var db = mongoose.connect('mongodb://127.0.0.1/medicalWiki');
+var db = mongoose.connect('mongodb://huyugui.ddns.net/medicalWiki');
 var nodejieba = require("nodejieba");
 //nodejieba.load({
 //    userDict: '../dict/user.dict'
 //});
-
+var elasticsearch = require('elasticsearch');
+var client = new elasticsearch.Client({
+    host: 'huyugui.ddns.net:9200',
+    log: 'trace'
+});
 
 nodejieba.load({
     userDict: '../dict/sougou.dict'
@@ -29,7 +33,6 @@ var Category = mongoose.model('Category');
 var Comment = mongoose.model('Comment');
 var Version = mongoose.model('Version');
 //
-
 //
 router.get('/doctor/login', function (req, res, next) {
     //
@@ -148,66 +151,87 @@ router.get('/vcode/register', function (req, res, next) {
 router.get('/questions/search', function (req, res, next) {
     //
 
-    var tags = nodejieba.extract(req.query.search, 100);
-    var new_tags = [];
-    tags.forEach(function (e1, i1, a1) {
-        new_tags.push(e1.substring(0, e1.lastIndexOf(':')));
-    });
-    //
-    var hash = simhash(new_tags);
-    var o = {};
-    //
-    o.map = function () {
-        var compareHash = function (r1, r2) {
-            var result3 = [];
-            r1.forEach(function (e, i, r) {
-                result3.push(e ^ r2[i]);
-            });
-            var total = 0;
-            result3.forEach(function (e, i, r) {
-                total = total + e;
-            });
-            return total;
-        }
-        if (this.doctor != null) {
-            var s = compareHash(hash, this.simhash);
-            emit(this._id, s);
-        }
-    }
-    o.reduce = function (key, values) {
-        //
-        return values[0];
-        //
-    }
-    //o.limit = 10;
-    o.out = {replace: 'results'};
-    o.scope = {hash: hash};
+    client.search({
+        index: 'medicalwiki',
 
-    Question.mapReduce(o, function (err, model) {
+        q: 'questions.question:' + req.query.search
 
 
-        model.find().sort({value: 1}).limit(10).exec(function (err, data) {
-            var ids = [];
-            data.forEach(function (e, i, r) {
-                //
-                ids.push(e._id);
-                //
-            });
-            Question.find({_id: {$in: ids}}).populate('doctor', 'name image').exec(function (err, result) {
-                var temp = [];
-                ids.forEach(function (e, i, a) {
-                    for (i = 0; i < result.length; i++) {
-                        if (result[i]._id.equals(e)) {
-                            temp.push(result[i]);
-                            continue;
-                        }
-                    }
-                })
-                res.jsonp(temp);
-            });
-
+    }).then(function (resp) {
+        var hits = resp;
+        var doc = [];
+        resp.hits.hits.forEach(function (e, i, a) {
+            doc.push(e._id);
+        })
+        Question.find({$and:[{"_id":{$in:doc}}]}).populate("doctor").exec(function(err,doc){
+            if(err) next(err);
+            res.jsonp(doc);
         });
+
+    }, function (err) {
+        if (err) next(err);
+        //    res.jsonp(doc);
     });
+    //var tags = nodejieba.extract(req.query.search, 100);
+    //var new_tags = [];
+    //tags.forEach(function (e1, i1, a1) {
+    //    new_tags.push(e1.substring(0, e1.lastIndexOf(':')));
+    //});
+    ////
+    //var hash = simhash(new_tags);
+    //var o = {};
+    ////
+    //o.map = function () {
+    //    var compareHash = function (r1, r2) {
+    //        var result3 = [];
+    //        r1.forEach(function (e, i, r) {
+    //            result3.push(e ^ r2[i]);
+    //        });
+    //        var total = 0;
+    //        result3.forEach(function (e, i, r) {
+    //            total = total + e;
+    //        });
+    //        return total;
+    //    }
+    //    if (this.doctor != null) {
+    //        var s = compareHash(hash, this.simhash);
+    //        emit(this._id, s);
+    //    }
+    //}
+    //o.reduce = function (key, values) {
+    //    //
+    //    return values[0];
+    //    //
+    //}
+    ////o.limit = 10;
+    //o.out = {replace: 'results'};
+    //o.scope = {hash: hash};
+    //
+    //Question.mapReduce(o, function (err, model) {
+    //
+    //
+    //    model.find().sort({value: 1}).limit(10).exec(function (err, data) {
+    //        var ids = [];
+    //        data.forEach(function (e, i, r) {
+    //            //
+    //            ids.push(e._id);
+    //            //
+    //        });
+    //        Question.find({_id: {$in: ids}}).populate('doctor', 'name image').exec(function (err, result) {
+    //            var temp = [];
+    //            ids.forEach(function (e, i, a) {
+    //                for (i = 0; i < result.length; i++) {
+    //                    if (result[i]._id.equals(e)) {
+    //                        temp.push(result[i]);
+    //                        continue;
+    //                    }
+    //                }
+    //            })
+    //            res.jsonp(temp);
+    //        });
+
+    //    });
+    //});
     //Question.find({$and: [{tags: {$all: new_tags}}, {doctor: {$ne: null}}]}, function (err, doc) {
     //    //
     //    if (err) next(err);
@@ -232,9 +256,9 @@ router.get('/vcode/forget', function (req, res, next) {
             var time = Math.floor(Date.now() / 1000);
             var numbers = new Array(6);
             for (var i = 0; i < numbers.length; i++) {
-                numbers[i] = randomIntInc(1,10)
+                numbers[i] = randomIntInc(1, 10)
             }
-            var vcode =utf8.encode("您的验证码:"+numbers+",用于智能知识库重置密码");
+            var vcode = utf8.encode("您的验证码:" + numbers + ",用于智能知识库重置密码");
             var signature = (crypto.createHash('md5').update(phone + ":" + vcode + ":" + time + ":" + "IIYI4N5UA3").digest('hex')).substring(0, 16);
             var url = 'http://iapi.iiyi.com/v1/other/sms/?mobile=' + phone + '&message=' + vcode + '&timestamp=' + time + '&signature=' + signature;
             rest.get(url).on('complete', function (data) {
@@ -271,19 +295,19 @@ router.post('/vcode/register', function (req, res, next) {
 
             var crypto = require('crypto');
 
-            function randomIntInc (low, high) {
+            function randomIntInc(low, high) {
                 return Math.floor(Math.random() * (high - low + 1) + low);
             }
 
             var rest = require('restler');
             var phone = req.body.phone;
             var time = Math.floor(Date.now() / 1000);
-            var numbers ="";
+            var numbers = "";
             for (var i = 0; i < 6; i++) {
-                numbers = numbers+randomIntInc(1,10)
+                numbers = numbers + randomIntInc(1, 10)
             }
 
-            var vcode =utf8.encode("您的验证码:"+numbers+",用于智能知识库注册");
+            var vcode = utf8.encode("您的验证码:" + numbers + ",用于智能知识库注册");
             var signature = (crypto.createHash('md5').update(phone + ":" + vcode + ":" + time + ":" + "IIYI4N5UA3").digest('hex')).substring(0, 16);
             var url = 'http://iapi.iiyi.com/v1/other/sms/?mobile=' + phone + '&message=' + vcode + '&timestamp=' + time + '&signature=' + signature;
             rest.get(url).on('complete', function (data) {
@@ -339,29 +363,29 @@ router.get('/doctors', function (req, res, next) {
         },
         function (error, result) {
             //
-            var asyncTasks=[];
+            var asyncTasks = [];
             //
-            result.forEach(function(e){
+            result.forEach(function (e) {
                 //
-                asyncTasks.push(function(callback) {
+                asyncTasks.push(function (callback) {
                     async.parallel([
-                        function(callback) {
+                        function (callback) {
                             Question.count({doctor: e._id}, function (err, doc) {
                                 e._doc.acceptCount = doc;
                                 callback();
                             })
                         },
-                        function(callback){
+                        function (callback) {
                             Comment.count({doctor: e._id}, function (err, doc) {
                                 e._doc.commentCount = doc;
                                 callback();
                             })
-                        }],function() {
+                        }], function () {
                         callback();
                     });
                 });
             });
-            async.parallel(asyncTasks,function(){
+            async.parallel(asyncTasks, function () {
                 if (error) next(error);
                 res.jsonp(result);
             })
@@ -382,9 +406,9 @@ router.get('/category', function (req, res, next) {
     });
     //
 });
-router.get('/doctor/comment',function(req,res,next){
-    if(req.query.beginTime != null && req.query.endTime != null) {
-        Comment.count(
+router.get('/doctor/comment', function (req, res, next) {
+    if (req.query.beginTime != null && req.query.endTime != null) {
+        Comment.find(
             {
                 $and: [{doctor: mongoose.Types.ObjectId(req.query.doctor)}, {
                     commentTime: {
@@ -392,18 +416,16 @@ router.get('/doctor/comment',function(req,res,next){
                         $lte: new Date(req.query.endTime)
                     }
                 }]
-            }).exec(
+            }).sort({commentTime: 1}).exec(
             function (err, doc) {
                 if (err) next(err);
                 res.jsonp(doc);
 
             });
-    }else
-    {
-        Comment.count(
-
-            {doctor: mongoose.Types.ObjectId(req.query.doctor)})
-            .exec(
+    } else {
+        Comment.find(
+            {doctor: mongoose.Types.ObjectId(req.query.doctor)}).
+            sort({commentTime: 1}).exec(
             function (err, doc) {
                 if (err) next(err);
                 res.jsonp(doc);
@@ -411,8 +433,8 @@ router.get('/doctor/comment',function(req,res,next){
             });
     }
 });
-router.get('/doctor/count',function(req,res,next){
-    if(req.query.beginTime != null && req.query.endTime != null) {
+router.get('/doctor/count', function (req, res, next) {
+    if (req.query.beginTime != null && req.query.endTime != null) {
         Question.count(
             {
                 $and: [{doctor: mongoose.Types.ObjectId(req.query.doctor)}, {
@@ -427,12 +449,10 @@ router.get('/doctor/count',function(req,res,next){
                 res.jsonp(doc);
 
             });
-    }else
-    {
+    } else {
         Question.count(
-
-            {doctor: mongoose.Types.ObjectId(req.query.doctor)}).
-           exec(
+            {doctor: mongoose.Types.ObjectId(req.query.doctor)})
+            .exec(
             function (err, doc) {
                 if (err) next(err);
                 res.jsonp(doc);
@@ -445,14 +465,14 @@ router.get('/category/admin', function (req, res, next) {
 
     Category.find({}, function (err, result) {
 
-        var asyncTasks=[];
+        var asyncTasks = [];
         //
-        result.forEach(function(e){
+        result.forEach(function (e) {
             //
-            asyncTasks.push(function(callback){
+            asyncTasks.push(function (callback) {
                 //
                 e._doc.count = [];
-                var asyncTasks1=[];
+                var asyncTasks1 = [];
                 e.child_depart.forEach(function (e1) {
 
                     // We don't actually execute the async action here
@@ -486,31 +506,31 @@ router.get('/category/admin', function (req, res, next) {
                         });
                     });
                 });
-                async.parallel(asyncTasks1,function(){
+                async.parallel(asyncTasks1, function () {
                     callback();
                 })
             })
         });
-        async.parallel(asyncTasks,function(){
+        async.parallel(asyncTasks, function () {
             if (err) next(err);
             res.jsonp(result);
         })
 
     });
 });
-router.get('/questions/statics',function(req,res,next){
-    var doc={questionCount:0,commentCount:0}
-    async.parallel([function(callback){
-        Question.count({doctor:req.query.docotor}).exec(function(err,res){
-            doc.questionCount=res;
+router.get('/questions/statics', function (req, res, next) {
+    var doc = {questionCount: 0, commentCount: 0}
+    async.parallel([function (callback) {
+        Question.count({doctor: req.query.docotor}).exec(function (err, res) {
+            doc.questionCount = res;
             callback();
         })
-    },function(callback){
-        Comment.count({doctor:req.query.docotor}).exec(function(err,res){
-            doc.commentCount=res;
+    }, function (callback) {
+        Comment.count({doctor: req.query.docotor}).exec(function (err, res) {
+            doc.commentCount = res;
             callback();
         })
-    }],function(){
+    }], function () {
         res.jsonp(doc);
     });
 });
@@ -527,7 +547,7 @@ router.get('/questions/unacceptCount', function (req, res, next) {
     })
 });
 router.get('/questions/count', function (req, res, next) {
-    Question.count({category: req.query.category,doctor:req.query.doctor}, function (err, count) {
+    Question.count({category: {$in: req.query.categorys == null ? [] : req.query.categorys}}, function (err, count) {
         if (err) next(err);
         res.jsonp(count);
     })
@@ -573,7 +593,6 @@ router.get('/questions/id', function (req, res, next) {
 router.get('/questions/unanswered', function (req, res, next) {
 
 
-
     Question.find(
         {$and: [{doctor: null}, {random: {$near: [Math.random(), Math.random()]}}, {category: {$in: req.query.categorys == null ? [] : req.query.categorys}}]}).limit(10).exec(function (err, results) {
             if (err) next(err);
@@ -584,7 +603,7 @@ router.get('/questions/unanswered', function (req, res, next) {
 router.get('/questions/', function (req, res, next) {
     //
     Question.paginate(
-        {category: req.query.category,doctor:req.query.doctor},
+        {category: {$in: req.query.categorys == null ? [] : req.query.categorys}},
         {
             page: req.query.pageNo,
             limit: req.query.pageNumber,
@@ -623,12 +642,12 @@ router.get('/questions/doctor', function (req, res, next) {
 
     if (req.query.minAnswerTime == null && req.query.maxAnswerTime == null) {
 
-        Question.find({$and: [{doctor: req.query.doctor} ]}).populate('doctor').sort({answerTime: -1}).limit(10).exec(function (err, doc) {
+        Question.find({$and: [{doctor: req.query.doctor}]}).populate('doctor').sort({answerTime: -1}).limit(10).exec(function (err, doc) {
             if (err) next(err);
             res.jsonp(doc);
 
         });
-    } else if((req.query.minAnswerTime != null)) {
+    } else if ((req.query.minAnswerTime != null)) {
         Question.find({
             $and: [{doctor: req.query.doctor}, {answerTime: {$lt: req.query.minAnswerTime}}
             ]
@@ -639,7 +658,7 @@ router.get('/questions/doctor', function (req, res, next) {
 
             });
     }
-    else if((req.query.maxAnswerTime != null)) {
+    else if ((req.query.maxAnswerTime != null)) {
         Question.find({
             $and: [{doctor: req.query.doctor}, {answerTime: {$gt: req.query.maxAnswerTime}}
             ]
