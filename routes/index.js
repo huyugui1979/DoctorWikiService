@@ -416,7 +416,7 @@ router.get('/doctor/comment', function (req, res, next) {
                         $lte: new Date(req.query.endTime)
                     }
                 }]
-            }).sort({commentTime: 1}).exec(
+            }).populate('question').sort({commentTime: 1}).exec(
             function (err, doc) {
                 if (err) next(err);
                 res.jsonp(doc);
@@ -424,7 +424,7 @@ router.get('/doctor/comment', function (req, res, next) {
             });
     } else {
         Comment.find(
-            {doctor: mongoose.Types.ObjectId(req.query.doctor)}).
+            {doctor: mongoose.Types.ObjectId(req.query.doctor)}).populate('question').
             sort({commentTime: 1}).exec(
             function (err, doc) {
                 if (err) next(err);
@@ -435,7 +435,7 @@ router.get('/doctor/comment', function (req, res, next) {
 });
 router.get('/doctor/count', function (req, res, next) {
     if (req.query.beginTime != null && req.query.endTime != null) {
-        Question.count(
+        Question.find(
             {
                 $and: [{doctor: mongoose.Types.ObjectId(req.query.doctor)}, {
                     answerTime: {
@@ -450,7 +450,7 @@ router.get('/doctor/count', function (req, res, next) {
 
             });
     } else {
-        Question.count(
+        Question.find(
             {doctor: mongoose.Types.ObjectId(req.query.doctor)})
             .exec(
             function (err, doc) {
