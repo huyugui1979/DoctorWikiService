@@ -7,7 +7,7 @@ var async = require('async');
 var simhash = require('simhash')('md5');
 var utf8 = require('utf8');
 
-var db = mongoose.connect('mongodb://huyugui.ddns.net/medicalWiki');
+var db = mongoose.connect('mongodb://127.0.0.1/medicalWiki');
 var nodejieba = require("nodejieba");
 //nodejieba.load({
 //    userDict: '../dict/user.dict'
