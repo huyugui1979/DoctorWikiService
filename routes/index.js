@@ -8,19 +8,25 @@ var simhash = require('simhash')('md5');
 var utf8 = require('utf8');
 
 var db = mongoose.connect('mongodb://127.0.0.1/medicalWiki');
-var nodejieba = require("nodejieba");
-//nodejieba.load({
-//    userDict: '../dict/user.dict'
-//});
-//var elasticsearch = require('elasticsearch');
-//var client = new elasticsearch.Client({
-//    host: 'huyugui.ddns.net:9200',
-//    log: 'trace'
-//});
-
-nodejieba.load({
-    userDict: '../dict/sougou.dict'
+var elasticsearch = require('elasticsearch');
+var client = new elasticsearch.Client({
+    host: '127.0.0.1:9200',
+    log: 'trace'
 });
+
+//var nodejieba = require("nodejieba");
+////nodejieba.load({
+////    userDict: '../dict/user.dict'
+////});
+////var elasticsearch = require('elasticsearch');
+////var client = new elasticsearch.Client({
+////    host: 'huyugui.ddns.net:9200',
+////    log: 'trace'
+////});
+//
+//nodejieba.load({
+//    userDict: '../dict/sougou.dict'
+//});
 require('../model/Comments');
 require('../model/Doctors');
 require('../model/Questions');
@@ -151,93 +157,92 @@ router.get('/vcode/register', function (req, res, next) {
 router.get('/questions/search', function (req, res, next) {
     //
 
-    //client.search({
-    //    index: 'medicalwiki',
-    //
-    //    q: 'questions.question:' + req.query.search
-    //
-    //
-    //}).then(function (resp) {
-    //    var hits = resp;
-    //    var doc = [];
-    //    resp.hits.hits.forEach(function (e, i, a) {
-    //        doc.push(e._id);
-    //    })
-    //    Question.find({$and:[{"_id":{$in:doc}}]}).populate("doctor").exec(function(err,doc){
-    //        if(err) next(err);
-    //        res.jsonp(doc);
-    //    });
-    //
-    //}, function (err) {
-    //    if (err) next(err);
-    //    //    res.jsonp(doc);
-    //});
-    var tags = nodejieba.extract(req.query.search, 100);
-    var new_tags = [];
-    tags.forEach(function (e1, i1, a1) {
-        new_tags.push(e1.substring(0, e1.lastIndexOf(':')));
-    });
-    //
-    var hash = simhash(new_tags);
-    var o = {};
-    //
-    o.map = function () {
-        var compareHash = function (r1, r2) {
-            var result3 = [];
-            r1.forEach(function (e, i, r) {
-                result3.push(e ^ r2[i]);
-            });
-            var total = 0;
-            result3.forEach(function (e, i, r) {
-                total = total + e;
-            });
-            return total;
-        }
-        if (this.doctor != null) {
-            var s = compareHash(hash, this.simhash);
-            emit(this._id, s);
-        }
-    }
-    o.reduce = function (key, values) {
-        //
-        return values[0];
-        //
-    }
-    //o.limit = 10;
-    o.out = {replace: 'results'};
-    o.scope = {hash: hash};
+    client.search({
+        index: 'medicalwiki',
 
-    Question.mapReduce(o, function (err, model) {
-
-
-        model.find().sort({value: 1}).limit(10).exec(function (err, data) {
-            var ids = [];
-            data.forEach(function (e, i, r) {
-                //
-                ids.push(e._id);
-                //
-            });
-            Question.find({_id: {$in: ids}}).populate('doctor', 'name image').exec(function (err, result) {
-                var temp = [];
-                ids.forEach(function (e, i, a) {
-                    for (i = 0; i < result.length; i++) {
-                        if (result[i]._id.equals(e)) {
-                            temp.push(result[i]);
-                            continue;
-                        }
-                    }
-                })
-                res.jsonp(temp);
-            });
-
+        q: 'questions.question:' + req.query.search,
+        size:30
+    }).then(function (resp) {
+        var hits = resp;
+        var doc = [];
+        resp.hits.hits.forEach(function (e, i, a) {
+            doc.push(e._id);
+        })
+        Question.find({$and:[{"_id":{$in:doc}}]}).populate("doctor").exec(function(err,doc){
+            if(err) next(err);
+            res.jsonp(doc);
         });
-    });
-    Question.find({$and: [{tags: {$all: new_tags}}, {doctor: {$ne: null}}]}, function (err, doc) {
-        //
+
+    }, function (err) {
         if (err) next(err);
-        res.jsonp(doc);
-        //
+        //    res.jsonp(doc);
     });
+    //var tags = nodejieba.extract(req.query.search, 100);
+    //var new_tags = [];
+    //tags.forEach(function (e1, i1, a1) {
+    //    new_tags.push(e1.substring(0, e1.lastIndexOf(':')));
+    //});
+    ////
+    //var hash = simhash(new_tags);
+    //var o = {};
+    ////
+    //o.map = function () {
+    //    var compareHash = function (r1, r2) {
+    //        var result3 = [];
+    //        r1.forEach(function (e, i, r) {
+    //            result3.push(e ^ r2[i]);
+    //        });
+    //        var total = 0;
+    //        result3.forEach(function (e, i, r) {
+    //            total = total + e;
+    //        });
+    //        return total;
+    //    }
+    //    if (this.doctor != null) {
+    //        var s = compareHash(hash, this.simhash);
+    //        emit(this._id, s);
+    //    }
+    //}
+    //o.reduce = function (key, values) {
+    //    //
+    //    return values[0];
+    //    //
+    //}
+    ////o.limit = 10;
+    //o.out = {replace: 'results'};
+    //o.scope = {hash: hash};
+    //
+    //Question.mapReduce(o, function (err, model) {
+    //
+    //
+    //    model.find().sort({value: 1}).limit(10).exec(function (err, data) {
+    //        var ids = [];
+    //        data.forEach(function (e, i, r) {
+    //            //
+    //            ids.push(e._id);
+    //            //
+    //        });
+    //        Question.find({_id: {$in: ids}}).populate('doctor', 'name image').exec(function (err, result) {
+    //            var temp = [];
+    //            ids.forEach(function (e, i, a) {
+    //                for (i = 0; i < result.length; i++) {
+    //                    if (result[i]._id.equals(e)) {
+    //                        temp.push(result[i]);
+    //                        continue;
+    //                    }
+    //                }
+    //            })
+    //            res.jsonp(temp);
+    //        });
+    //
+    //    });
+    //});
+    //Question.find({$and: [{tags: {$all: new_tags}}, {doctor: {$ne: null}}]}, function (err, doc) {
+    //    //
+    //    if (err) next(err);
+    //    res.jsonp(doc);
+    //    //
+    //});
 
 });
 router.get('/vcode/forget', function (req, res, next) {
