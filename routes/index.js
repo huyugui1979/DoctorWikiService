@@ -168,7 +168,7 @@ router.get('/questions/search', function (req, res, next) {
         resp.hits.hits.forEach(function (e, i, a) {
             doc.push(e._id);
         })
-        Question.find({$and:[{"_id":{$in:doc}}]}).populate("doctor").exec(function(err,doc){
+        Question.find({$and:[{"_id":{$in:doc}},{doctor:{$ne:null}}]}).populate("doctor").exec(function(err,doc){
             if(err) next(err);
             res.jsonp(doc);
         });
