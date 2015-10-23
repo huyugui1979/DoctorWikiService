@@ -589,7 +589,7 @@ router.get('/questions/unanswered', function (req, res, next) {
 
 
     Question.find(
-        {$and: [{doctor: null}, {random: {$near: [Math.random(), Math.random()],$maxDistacne:0.1}}, {category: {$in: req.query.categorys == null ? [] : req.query.categorys}}]}).limit(10).exec(function (err, results) {
+        {$and: [{doctor: null}, {random: {$near: [Math.random(), Math.random()],$maxDistance:0.1}}, {category: {$in: req.query.categorys == null ? [] : req.query.categorys}}]}).limit(10).exec(function (err, results) {
             if (err) next(err);
             res.jsonp(results);
 
@@ -626,7 +626,7 @@ router.put('/questions', function (req, res, next) {
 });
 router.get('/questions/answered', function (req, res, next) {
 
-    Question.find({$and: [{doctor: {$ne: null}}, {random: {$near: [Math.random(), Math.random()],$maxDistacne:0.1}}, {category: {$in: req.query.categorys == null ? [] : req.query.categorys}}]}).populate('doctor').limit(10).exec(function (err, doc) {
+    Question.find({$and: [{doctor: {$ne: null}}, {random: {$near: [Math.random(), Math.random()],$maxDistance:0.1}}, {category: {$in: req.query.categorys == null ? [] : req.query.categorys}}]}).populate('doctor').limit(10).exec(function (err, doc) {
         if (err) next(err);
         res.jsonp(doc);
     });
