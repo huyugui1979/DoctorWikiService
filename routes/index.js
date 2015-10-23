@@ -7,10 +7,10 @@ var async = require('async');
 var simhash = require('simhash')('md5');
 var utf8 = require('utf8');
 
-var db = mongoose.connect('mongodb://127.0.0.1/medicalWiki');
+var db = mongoose.connect('mongodb://113.31.89.204/medicalWiki');
 var elasticsearch = require('elasticsearch');
 var client = new elasticsearch.Client({
-    host: '127.0.0.1:9200',
+    host: 'huyugui.eicp.net:9200',
     log: 'trace'
 });
 
@@ -344,16 +344,6 @@ router.put('/doctors', function (req, res, next) {
 
     });
 })
-router.delete('/doctors', function (req, res, next) {
-    //
-
-    //
-    Doctor.findOneAndRemove({_id: req.body._id}, function (error, result) {
-        if (error) next(error);
-        res.jsonp(result);
-    });
-    //
-})
 
 router.get('/doctors', function (req, res, next) {
     //
@@ -599,7 +589,7 @@ router.get('/questions/unanswered', function (req, res, next) {
 
 
     Question.find(
-        {$and: [{doctor: null}, {random: {$near: [Math.random(), Math.random()]}}, {category: {$in: req.query.categorys == null ? [] : req.query.categorys}}]}).limit(10).exec(function (err, results) {
+        {$and: [{doctor: null}, {single_random: {$gt: Math.random()}}, {category: {$in: req.query.categorys == null ? [] : req.query.categorys}}]}).limit(10).exec(function (err, results) {
             if (err) next(err);
             res.jsonp(results);
 
@@ -636,7 +626,7 @@ router.put('/questions', function (req, res, next) {
 });
 router.get('/questions/answered', function (req, res, next) {
 
-    Question.find({$and: [{doctor: {$ne: null}}, {random: {$near: [Math.random(), Math.random()]}}, {category: {$in: req.query.categorys == null ? [] : req.query.categorys}}]}).populate('doctor').limit(10).exec(function (err, doc) {
+    Question.find({$and: [{doctor: {$ne: null}}, {single_random: {$gt: Math.random()}}, {category: {$in: req.query.categorys == null ? [] : req.query.categorys}}]}).populate('doctor').limit(10).exec(function (err, doc) {
         if (err) next(err);
         res.jsonp(doc);
     });
