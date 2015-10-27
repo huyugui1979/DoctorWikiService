@@ -7,10 +7,10 @@ var async = require('async');
 var simhash = require('simhash')('md5');
 var utf8 = require('utf8');
 
-var db = mongoose.connect('mongodb://127.0.0.1/medicalWiki');
+var db = mongoose.connect('mongodb://113.31.89.204/medicalWiki');
 var elasticsearch = require('elasticsearch');
 var client = new elasticsearch.Client({
-    host: '127.0.0.1:9200',
+    host: '113.31.89.204:9200',
     log: 'trace'
 });
 
@@ -40,6 +40,7 @@ var Comment = mongoose.model('Comment');
 var Version = mongoose.model('Version');
 //
 //
+
 router.get('/doctor/login', function (req, res, next) {
     //
     Doctor.find(req.query, function (err, result) {
@@ -47,6 +48,10 @@ router.get('/doctor/login', function (req, res, next) {
         if (err) next(err);
         if (result.length == 0)
             throw new Error("错误的手机号码或密码")
+        else if(result[0].enable =="no")
+        {
+            throw new Error('你已经被禁止登录,请联系管理员');
+        }
         else
             res.jsonp(result);
         //
@@ -110,8 +115,13 @@ router.get('/doctors/id', function (req, res, next) {
         if (error) {
             throw new Error(error.message);
         }
-        if (doc == null) {
+
+        else if (doc == null) {
             throw  new Error('错误的医生id');
+        }
+        else if(doc.enable =="no")
+        {
+            throw new Error('你已经被禁止登录,请联系管理员');
         }
         res.jsonp(doc);
 
