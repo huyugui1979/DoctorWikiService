@@ -35,8 +35,10 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.all('*', function (req, res, next) {
     //app.use(cors());
     res.header('Access-Control-Allow-Credentials', true);
+
     res.setHeader("Access-Control-Expose-Headers", "Set-Cookie");
-    res.header("Access-Control-Allow-Origin",req.headers.origin);
+  //  res.header("Access-Control-Allow-Origin","localhost:12345");
+    res.header('Access-Control-Allow-Origin', req.headers.origin || "*");
     res.header('Access-Control-Allow-Methods', 'POST, GET, DELETE,OPTIONS,PUT');
     res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
     next();

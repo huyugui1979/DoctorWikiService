@@ -10,6 +10,7 @@ var QuestionSchema = new mongoose.Schema(
         createTime:{ type: Date, default: Date.now },
         answerTime:  Date,
         tags: [String],
+        numberOfModify:[String],
         answer:String,
         comments:[{type: mongoose.Schema.Types.ObjectId, ref: 'Comment'}],
         doctor:{type: mongoose.Schema.Types.ObjectId, ref: 'Doctor'},

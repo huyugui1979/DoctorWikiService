@@ -7,10 +7,10 @@ var async = require('async');
 var simhash = require('simhash')('md5');
 var utf8 = require('utf8');
 
-var db = mongoose.connect('mongodb://127.0.0.1/medicalWiki');
+var db = mongoose.connect('mongodb://113.31.89.204/medicalWiki');
 var elasticsearch = require('elasticsearch');
 var client = new elasticsearch.Client({
-    host: '127.0.0.1:9200',
+    host: '113.31.89.204:9200',
     log: 'trace'
 });
 
@@ -164,11 +164,18 @@ router.get('/vcode/register', function (req, res, next) {
 });
 router.get('/questions/search', function (req, res, next) {
     //
-
+    var queryString ;
+    if(req.query.doctor !=null)
+    {
+        queryString='questions.question:' + req.query.search+"and questions.doctor:"+req.query.doctor
+    }else
+    {
+        queryString='questions.question:' + req.query.search;
+    }
     client.search({
         index: 'medicalwiki',
 
-        q: 'questions.question:' + req.query.search,
+        q: queryString,
         size: 30
     }).then(function (resp) {
         var hits = resp;
@@ -176,10 +183,26 @@ router.get('/questions/search', function (req, res, next) {
         resp.hits.hits.forEach(function (e, i, a) {
             doc.push(e._id);
         })
-        Question.find({$and: [{"_id": {$in: doc}}, {doctor: {$ne: null}}]}).populate("doctor").exec(function (err, doc) {
-            if (err) next(err);
-            res.jsonp(doc);
-        });
+        if(req.query.doctor == null ) {
+            Question.find({$and: [{"_id": {$in: doc}}, {doctor: {$ne: null}}]}).populate("doctor").exec(function (err, doc) {
+                if (err) next(err);
+                res.jsonp(doc);
+            });
+        }else
+        {
+            if(req.query.modifyType == 0) {
+                Question.find({$and: [{"_id": {$in: doc}}, {doctor: mongoose.Types.ObjectId(req.query.doctor)},{numberOfModify: {$eq: null}}]}).populate("doctor").exec(function (err, doc) {
+                    if (err) next(err);
+                    res.jsonp(doc);
+                });
+            }else{
+                Question.find({$and: [{"_id": {$in: doc}}, {doctor:  mongoose.Types.ObjectId(req.query.doctor)}, {numberOfModify: {$gt: 0}}]}).populate("doctor").exec(function (err, doc) {
+                    if (err) next(err);
+                    res.jsonp(doc);
+                });
+            }
+        }
+
 
     }, function (err) {
         if (err) next(err);
@@ -339,7 +362,7 @@ router.post('/vcode/register', function (req, res, next) {
     })
 });
 router.get('/questions/detail', function (req, res, next) {
-    Question.findOne({_id: req.query._id}, function (error1, doc1) {
+    Question.findOne({_id: mongoose.Types.ObjectId(req.query._id)}, function (error1, doc1) {
         //
         var doc = "<p>" + doc1._doc.question + "</p>" + "<p>" + doc1._doc.answer + "</p>" + "<pr>";
         Doctor.populate(doc1._doc.comments, {path: 'doctor'}, function (error2, doc2) {
@@ -389,11 +412,14 @@ router.get('/doctor/beenComment', function (req, res, next) {
         {
             $and: [{doctor: mongoose.Types.ObjectId(req.query.doctor)}, {
                 answerTime: {
-                    $gte: new Date(req.query.beginTime)}},
-                {answerTime:{
-                    $lte: new Date(req.query.endTime)
+                    $gte: new Date(req.query.beginTime)
                 }
-            }]
+            },
+                {
+                    answerTime: {
+                        $lte: new Date(req.query.endTime)
+                    }
+                }]
         }).populate('comments').exec(function (err, doc) {
             //
             var result = [];
@@ -525,20 +551,24 @@ router.get('/category', function (req, res, next) {
 });
 router.get('/doctor/comment', function (req, res, next) {
 
-        Comment.find(
-            {
-                $and: [{doctor: mongoose.Types.ObjectId(req.query.doctor)}, {
+    Comment.find(
+        {
+            $and: [{doctor: mongoose.Types.ObjectId(req.query.doctor)}, {
+                commentTime: {
+                    $gte: new Date(req.query.beginTime)
+                }
+            },
+                {
                     commentTime: {
-                        $gte: new Date(req.query.beginTime)}},
-                    {commentTime:{    $lte: new Date(req.query.endTime)
+                        $lte: new Date(req.query.endTime)
                     }
                 }]
-            }).populate('question').sort({commentTime: 1}).exec(
-            function (err, doc) {
-                if (err) next(err);
-                res.jsonp(doc);
+        }).populate('question').sort({commentTime: 1}).exec(
+        function (err, doc) {
+            if (err) next(err);
+            res.jsonp(doc);
 
-            });
+        });
 
 });
 router.get('/doctor/count', function (req, res, next) {
@@ -788,6 +818,51 @@ router.get('/questions/answered', function (req, res, next) {
         if (err) next(err);
         res.jsonp(doc);
     });
+
+});
+router.get('/questions/doctor/v2', function (req, res, next) {
+
+
+    if (req.query.minAnswerTime == null && req.query.maxAnswerTime == null) {
+
+        if (req.query.modifyType == 0) {
+            Question.find({$and: [{doctor: req.query.doctor}, {numberOfModify: {$eq: null}}]}).populate('doctor').sort({answerTime: -1}).limit(10).exec(function (err, doc) {
+                if (err) next(err);
+                res.jsonp(doc);
+
+            });
+        }else{
+
+                Question.find({$and: [{doctor: req.query.doctor}, {numberOfModify: {$gt: 0}}]}).populate('doctor').sort({answerTime: -1}).limit(10).exec(function (err, doc) {
+                    if (err) next(err);
+                    res.jsonp(doc);
+
+                });
+        }
+
+    } else if ((req.query.minAnswerTime != null)) {
+        if (req.query.modifyType == 0) {
+            Question.find({
+                $and: [{doctor: req.query.doctor}, {answerTime: {$lt: req.query.minAnswerTime}},{numberOfModify: {$eq: null}}
+                ]
+            }).
+                populate('doctor').sort({answerTime: -1}).limit(10).exec(function (err, doc) {
+                    if (err) next(err);
+                    res.jsonp(doc);
+
+                });
+        }else{
+            Question.find({
+                $and: [{doctor: req.query.doctor}, {answerTime: {$lt: req.query.minAnswerTime}},{numberOfModify: {$gt: 0}}
+                ]
+            }).
+                populate('doctor').sort({answerTime: -1}).limit(10).exec(function (err, doc) {
+                    if (err) next(err);
+                    res.jsonp(doc);
+
+                });
+        }
+    }
 
 });
 router.get('/questions/doctor', function (req, res, next) {
