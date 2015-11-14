@@ -826,14 +826,14 @@ router.get('/questions/doctor/v2', function (req, res, next) {
     if (req.query.minAnswerTime == null && req.query.maxAnswerTime == null) {
 
         if (req.query.modifyType == 0) {
-            Question.find({$and: [{doctor: req.query.doctor}, {numberOfModify: {$eq: null}}]}).populate('doctor').sort({answerTime: -1}).limit(10).exec(function (err, doc) {
+            Question.find({$and: [{doctor: req.query.doctor}, {numberOfModify: {$eq: null}}]}).populate('doctor').sort({unReadCommentNumber:-1,answerTime: -1}).limit(10).exec(function (err, doc) {
                 if (err) next(err);
                 res.jsonp(doc);
 
             });
         }else{
 
-                Question.find({$and: [{doctor: req.query.doctor}, {numberOfModify: {$gt: 0}}]}).populate('doctor').sort({answerTime: -1}).limit(10).exec(function (err, doc) {
+                Question.find({$and: [{doctor: req.query.doctor}, {numberOfModify: {$gt: 0}}]}).populate('doctor').sort({unReadCommentNumber:-1,answerTime: -1}).limit(10).exec(function (err, doc) {
                     if (err) next(err);
                     res.jsonp(doc);
 
@@ -846,7 +846,7 @@ router.get('/questions/doctor/v2', function (req, res, next) {
                 $and: [{doctor: req.query.doctor}, {answerTime: {$lt: req.query.minAnswerTime}},{numberOfModify: {$eq: null}}
                 ]
             }).
-                populate('doctor').sort({answerTime: -1}).limit(10).exec(function (err, doc) {
+                populate('doctor').sort({unReadCommentNumber:-1,answerTime: -1}).limit(10).exec(function (err, doc) {
                     if (err) next(err);
                     res.jsonp(doc);
 
@@ -856,7 +856,7 @@ router.get('/questions/doctor/v2', function (req, res, next) {
                 $and: [{doctor: req.query.doctor}, {answerTime: {$lt: req.query.minAnswerTime}},{numberOfModify: {$gt: 0}}
                 ]
             }).
-                populate('doctor').sort({answerTime: -1}).limit(10).exec(function (err, doc) {
+                populate('doctor').sort({unReadCommentNumber:-1,answerTime: -1}).limit(10).exec(function (err, doc) {
                     if (err) next(err);
                     res.jsonp(doc);
 
@@ -994,8 +994,10 @@ router.get('/comments/question', function (req, res, next) {
 router.post('/comments', function (req, res, next) {
     Comment.create(req.body, function (error, comment) {
         if (error) next(error);
-        Question.findOneAndUpdate({_id: comment.question}, {'$push': {comments: {_id: comment._id}}}, function (error, doc) {
+        Question.findOneAndUpdate({_id: comment.question},  {$push:{comments: {_id: comment._id}},$inc:{unReadCommentNumber:1}}, function (error, doc) {
+
             if (error) next(error);
+
             res.jsonp(comment);
         });
         //
