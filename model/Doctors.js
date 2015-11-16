@@ -18,7 +18,8 @@ var DoctorSchema = new mongoose.Schema(
         registerTime:Date,
         collections:[{type: mongoose.Schema.Types.ObjectId, ref: 'Question'}],
         image:String,
-        enable:String
+        enable:String,
+
     });
 DoctorSchema.plugin(mongoosePaginate);
 mongoose.model('Doctor', DoctorSchema);
