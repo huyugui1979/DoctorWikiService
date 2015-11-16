@@ -687,17 +687,17 @@ router.get('/category/admin', function (req, res, next) {
 router.get('/questions/statics', function (req, res, next) {
     var doc = {questionCount: 0, commentCount: 0}
     async.parallel([function (callback) {
-        Question.count({doctor: mongoose.Types.ObjectId(req.query.doctor)}).exec(function (err, res) {
+        Question.count({doctor: mongoose.Types.ObjectId(req.query.docotor)}).exec(function (err, res) {
             doc.questionCount = res;
             callback();
         })
     }, function (callback) {
-        Comment.count({doctor: mongoose.Types.ObjectId(req.query.doctor)}).exec(function (err, res) {
+        Comment.count({doctor: mongoose.Types.ObjectId(req.query.docotor)}).exec(function (err, res) {
             doc.commentCount = res;
             callback();
         })
     },function(callback){
-        Question.aggregate({$match:{doctor:mongoose.Types.ObjectId(req.query.doctor)}},{$group:{_id:{month:{$month:"$answerTime"},year:{$year:"$answerTime"}},total:{$sum:1}}},function(err,doc1){
+        Question.aggregate({$match:{doctor:mongoose.Types.ObjectId(req.query.docotor)}},{$group:{_id:{month:{$month:"$answerTime"},year:{$year:"$answerTime"}},total:{$sum:1}}},function(err,doc1){
             //
             var TodayDate = new Date();
             var d = TodayDate.getDay();
@@ -715,7 +715,7 @@ router.get('/questions/statics', function (req, res, next) {
             //
         })
     },function(callback){
-        Comment.aggregate({$match:{doctor:mongoose.Types.ObjectId(req.query.doctor)}},{$group:{_id:{month:{$month:"$commentTime"},year:{$year:"$commentTime"}},total:{$sum:1}}},function(err,doc1){
+        Comment.aggregate({$match:{doctor:mongoose.Types.ObjectId(req.query.docotor)}},{$group:{_id:{month:{$month:"$commentTime"},year:{$year:"$commentTime"}},total:{$sum:1}}},function(err,doc1){
             var TodayDate = new Date();
             var d = TodayDate.getDay();
             var m = TodayDate.getMonth();
