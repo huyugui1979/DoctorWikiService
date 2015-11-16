@@ -165,7 +165,7 @@ router.get('/vcode/register', function (req, res, next) {
 router.get('/questions/search', function (req, res, next) {
     //
     var queryString;
-    if (req.query.doctor == null)
+    if (req.query.doctor != null)
         queryString = 'question:' + req.query.search +" and doctor:"+req.query.doctor;
     else
         queryString = 'question:' + req.query.search;
