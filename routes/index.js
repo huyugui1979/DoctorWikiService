@@ -32,7 +32,7 @@ require('../model/Doctors');
 require('../model/Questions');
 require('../model/Categories');
 require('../model/Doctors');
-require('../model/Versions')
+require('../model/Versions');
 var Doctor = mongoose.model('Doctor');
 var Question = mongoose.model('Question');
 var Category = mongoose.model('Category');
@@ -47,7 +47,7 @@ router.get('/doctor/login', function (req, res, next) {
         //未命名文件夹 2
         if (err) next(err);
         if (result.length == 0)
-            throw new Error("错误的手机号码或密码")
+            throw new Error("错误的手机号码或密码");
         else if (result[0].enable == "no") {
             throw new Error('你已经被禁止登录,请联系管理员');
         }
@@ -92,14 +92,14 @@ router.get('/versions', function (req, res, next) {
         res.jsonp(doc);
         //
     });
-})
+});
 router.post('/versions/', function (req, res, next) {
     var v = new Version(req.query.version);
     v.save(function (error, doc) {
         if (err) next(err);
         res.jsonp(doc);
     })
-})
+});
 router.get('/doctors/count', function (req, res, next) {
     Doctor.count({}, function (err, count) {
         if (err) next(err);
@@ -128,7 +128,7 @@ router.get('/doctors/id', function (req, res, next) {
 
 
     //
-})
+});
 router.post('/vcode/forget', function (req, res, next) {
     //
     if (req.session.phone == req.body.phone && req.session.vcode == req.body.vcode) {
@@ -138,7 +138,7 @@ router.post('/vcode/forget', function (req, res, next) {
                 throw new Error(error.message);
             }
             res.jsonp(result);
-        })
+        });
         //
     } else {
         throw new Error('请输入正确的手机号或验证码');
@@ -155,7 +155,7 @@ router.get('/vcode/register', function (req, res, next) {
                 throw new Error(error.message);
             }
             res.jsonp(result);
-        })
+        });
         //
     } else {
         throw new Error('请输入正确的手机号或验证码');
@@ -181,7 +181,7 @@ router.get('/questions/search', function (req, res, next) {
 
         resp.hits.hits.forEach(function (e, i, a) {
             doc.push(mongoose.Types.ObjectId(e._id));
-        })
+        });
         if (req.query.doctor == null) {
             Question.find({$and: [{"_id": {$in: doc}}, {doctor: {$ne: null}}]}).populate("doctor").exec(function (err, doc1) {
               var doc2=[];
@@ -399,13 +399,13 @@ router.get('/questions/detail', function (req, res, next) {
                 doc += "<p>医生:" + e._doc.doctor._doc.name + "</p>" + "<p>时间" + e._doc.commentTime + '</p>' + '<p>评论内容' + e._doc.content + '</p>';
 
 
-            })
+            });
             res.jsonp(doc);
             //
         });
         //
     }).populate('comments');
-})
+});
 router.delete('/doctors', function (req, res, next) {
     Doctor.findOneAndRemove({_id: req.query._id}, function (error, result) {
         if (error) next(error);
@@ -419,7 +419,7 @@ router.put('/doctors', function (req, res, next) {
         res.jsonp(result);
 
     });
-})
+});
 //router.get('/doctors/acceptcount',function(req,res,next){
 //    //
 //
@@ -685,7 +685,7 @@ router.get('/category/admin', function (req, res, next) {
     });
 });
 router.get('/questions/statics', function (req, res, next) {
-    var doc = {questionCount: 0, commentCount: 0}
+    var doc = {questionCount: 0, commentCount: 0};
     async.parallel([function (callback) {
         Question.count({doctor: mongoose.Types.ObjectId(req.query.docotor)}).exec(function (err, res) {
             doc.questionCount = res;
@@ -711,7 +711,7 @@ router.get('/questions/statics', function (req, res, next) {
                     callback();
                 }
 
-            })
+            });
             //
         })
     },function(callback){
@@ -790,7 +790,7 @@ router.post('/doctor/changepassword', function (req, res, next) {
         if (doc == null)
             throw new Error('请输入正确的原始密码');
         res.jsonp(doc);
-    })
+    });
     //
 });
 router.get('/questions/id', function (req, res, next) {
@@ -798,7 +798,7 @@ router.get('/questions/id', function (req, res, next) {
         if (err) next(err);
         res.jsonp(doc);
     });
-})
+});
 router.get('/questions/unanswered', function (req, res, next) {
 
 
@@ -1011,7 +1011,7 @@ router.get('/comments/doctor', function (req, res, next) {
                 for (k = 0; k < ids.length; k++) {
                     if (e.question.equals(ids[k])) {
                         find = true;
-                        continue;
+
                     }
                 }
                 if (find == false) {
@@ -1027,10 +1027,10 @@ router.get('/comments/doctor', function (req, res, next) {
                         if (result[i]._id.equals(ee)) {
                             result[i]._doc.commentTime = time[k];
                             temp.push(result[i]);
-                            continue;
+
                         }
                     }
-                })
+                });
                 res.jsonp(temp);
             });
             //
@@ -1051,7 +1051,7 @@ router.get('/comments/doctor', function (req, res, next) {
                 for (k = 0; k < ids.length; k++) {
                     if (e.question.equals(ids[k])) {
                         find = true;
-                        continue;
+
                     }
                 }
                 if (find == false) {
@@ -1068,10 +1068,10 @@ router.get('/comments/doctor', function (req, res, next) {
                         if (result[i]._id.equals(ee)) {
                             result[i]._doc.commentTime = time[k];
                             temp.push(result[i]);
-                            continue;
+
                         }
                     }
-                })
+                });
                 res.jsonp(temp);
             });
             //
@@ -1079,7 +1079,7 @@ router.get('/comments/doctor', function (req, res, next) {
             //
         });
     }
-})
+});
 router.get('/comments/question', function (req, res, next) {
 
     Comment.find({question: req.query.question}).populate('question').populate('doctor').sort({commentTime: 1}).exec(function (err, doc) {
