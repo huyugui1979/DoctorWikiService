@@ -7,10 +7,10 @@ var async = require('async');
 var simhash = require('simhash')('md5');
 var utf8 = require('utf8');
 
-var db = mongoose.connect('mongodb://127.0.0.1/medicalWiki');
+var db = mongoose.connect('mongodb://113.31.89.204/medicalWiki');
 var elasticsearch = require('elasticsearch');
 var client = new elasticsearch.Client({
-    host: 'http://127.0.0.1:9200',
+    host: 'http://113.31.89.204/:9200',
     log: 'trace'
 });
 
@@ -166,7 +166,7 @@ router.get('/questions/search', function (req, res, next) {
     //
     var queryString;
     if (req.query.doctor != null)
-        queryString = 'question:' + req.query.search +" and doctor:"+req.query.doctor;
+        queryString = 'question:' + req.query.search +" and doctor:"+req.query.doctor ;
     else
         queryString = 'question:' + req.query.search;
 
@@ -906,7 +906,7 @@ router.get('/questions/doctor/accept', function (req, res, next) {
                 answerTime: {
                     $gt: req.query.startDate == null ? '1900-01-01' : req.query.startDate
                 }
-            }, {answerTime: {$lt: req.query.endDate == null ? '9999-12-30' : req.query.endDate}}, {numberOfModify: {$eq: null}}]
+            }, {answerTime: {$lt: req.query.endDate == null ? '9999-12-30' : req.query.endDate}}, {numberOfModify: {$eq: 0}}]
         }).populate('doctor').sort({
             unReadCommentNumber: -1,
             answerTime: -1
