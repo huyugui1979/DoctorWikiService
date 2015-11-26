@@ -5,7 +5,7 @@ var favicon = require('serve-favicon');
 var logger = require('morgan');
 var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
-var session = require('express-session')
+var session = require('express-session');
 var routes = require('./routes/index');
 var users = require('./routes/users');
 var cors = require('cors');
@@ -43,10 +43,13 @@ app.all('*', function (req, res, next) {
     res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
     next();
 });
-app.use(bodyParser.json({ limit: '100mb' }))
+app.use(bodyParser.json({ limit: '100mb' }));
 app.use(require('express-domain-middleware'));
 app.use('/', routes);
 app.use('/users', users);
+
+
+
 app.use(function errorHandler(err, req, res, next) {
     console.log('error on request  %s %s: %s', req.method, req.url, err.stack);
     res.status(500).send(err.message);
