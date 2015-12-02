@@ -7,10 +7,10 @@ var async = require('async');
 var simhash = require('simhash')('md5');
 var utf8 = require('utf8');
 
-var db = mongoose.connect('mongodb://user1:hyg&1qaz2wsx@127.0.0.1/medicalWiki');
+var db = mongoose.connect('mongodb://user1:hyg&1qaz2wsx@113.31.89.205/medicalWiki');
 var elasticsearch = require('elasticsearch');
 var client = new elasticsearch.Client({
-    host: 'http://127.0.0.1:9200',
+    host: 'http://113.31.89.205:9200',
     log: 'trace'
 });
 
@@ -705,7 +705,7 @@ router.get('/questions/statics', function (req, res, next) {
             var y = TodayDate.getFullYear();
             doc1.forEach(function(e,i,a){
 
-                if(e._id.month == m+1 && e._id.year == y)
+                if(e._id.month == m && e._id.year == y)
                 {
                     doc.monthQuesetionCount = e.total;
                     callback();
@@ -722,7 +722,7 @@ router.get('/questions/statics', function (req, res, next) {
             var y = TodayDate.getFullYear();
             doc1.forEach(function(e,i,a){
 
-                if(e._id.month == m+1 && e._id.year == y)
+                if(e._id.month == m && e._id.year == y)
                 {
                     doc.monthCommentCount = e.total;
                     callback();
@@ -1080,6 +1080,43 @@ router.get('/comments/doctor', function (req, res, next) {
         });
     }
 });
+router.post('/questions/compare',function(req,res,next){
+    //
+    var questions=[];
+    var asyncTasks = [];
+    //
+    req.body.forEach(function (e) {
+        //
+        asyncTasks.push(function (callback) {
+            Question.findOne({question: e.question}).exec(function(err,doc){
+                if(doc == null)
+                {
+                    //
+                    console.log("create");
+                    Question.create(e, function (error, result) {
+                        callback();
+
+                    });
+                    //
+                }else
+                {
+                    console.log("finish");
+                    callback();
+                }
+
+            });
+        });
+
+    });
+    async.parallel(asyncTasks, function (error) {
+        if (error) next(error);
+        console.log("we finished");
+        res.jsonp("finish");
+    });
+
+
+    //
+});
 router.get('/comments/question', function (req, res, next) {
 
     Comment.find({question: req.query.question}).populate('question').populate('doctor').sort({commentTime: 1}).exec(function (err, doc) {
@@ -1118,17 +1155,17 @@ router.delete('/questions', function (req, res, next) {
         });
 });
 router.post('/questions', function (req, res, next) {
-    req.body.forEach(function (e, i, a) {
-        //
-        var tags = nodejieba.extract(e.question, 100);
-        var new_tags = [];
-        tags.forEach(function (e1, i1, a1) {
-            new_tags.push(e1.substring(0, e1.lastIndexOf(':')));
-        });
-        //e.tags = new_tags;
-        e.simhash = simhash(new_tags);
-        //
-    });
+    //req.body.forEach(function (e, i, a) {
+    //    //
+    //    var tags = nodejieba.extract(e.question, 100);
+    //    var new_tags = [];
+    //    tags.forEach(function (e1, i1, a1) {
+    //        new_tags.push(e1.substring(0, e1.lastIndexOf(':')));
+    //    });
+    //    //e.tags = new_tags;
+    //    e.simhash = simhash(new_tags);
+    //    //
+    //});
     Question.create(req.body, function (error, result) {
 
         if (error) next(error);
