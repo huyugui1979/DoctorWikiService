@@ -7,10 +7,10 @@ var async = require('async');
 var simhash = require('simhash')('md5');
 var utf8 = require('utf8');
 
-var db = mongoose.connect('mongodb://user1:hyg&1qaz2wsx@113.31.89.205/medicalWiki');
+var db = mongoose.connect('mongodb://user1:hyg&1qaz2wsx@127.0.0.1/medicalWiki');
 var elasticsearch = require('elasticsearch');
 var client = new elasticsearch.Client({
-    host: 'http://113.31.89.205:9200',
+    host: 'http://127.0.0.1:9200',
     log: 'trace'
 });
 
@@ -705,13 +705,19 @@ router.get('/questions/statics', function (req, res, next) {
             var y = TodayDate.getFullYear();
             doc1.forEach(function(e,i,a){
 
-                if(e._id.month == m && e._id.year == y)
+                if(e._id.month == m+1 && e._id.year == y)
                 {
                     doc.monthQuesetionCount = e.total;
                     callback();
                 }
 
             });
+            if(doc.monthQuesetionCount ==null)
+            {
+                doc.monthQuesetionCount =0;
+                callback();
+            }
+
             //
         })
     },function(callback){
@@ -722,13 +728,18 @@ router.get('/questions/statics', function (req, res, next) {
             var y = TodayDate.getFullYear();
             doc1.forEach(function(e,i,a){
 
-                if(e._id.month == m && e._id.year == y)
+                if(e._id.month == m+1 && e._id.year == y)
                 {
                     doc.monthCommentCount = e.total;
                     callback();
                 }
 
             });
+            if(doc.monthCommentCount  == null)
+            {
+             doc.monthCommentCount=0;
+                callback();
+            }
         })
     }], function () {
         res.jsonp(doc);
