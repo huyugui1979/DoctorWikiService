@@ -710,7 +710,6 @@ router.get('/questions/statics', function (req, res, next) {
                     doc.monthQuesetionCount = e.total;
                     callback();
                 }
-
             });
             if(doc.monthQuesetionCount ==null)
             {
