@@ -717,7 +717,6 @@ router.get('/questions/statics', function (req, res, next) {
                 doc.monthQuesetionCount =0;
                 callback();
             }
-
             //
         })
     },function(callback){
