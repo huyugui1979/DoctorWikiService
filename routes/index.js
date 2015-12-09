@@ -7,10 +7,10 @@ var async = require('async');
 var simhash = require('simhash')('md5');
 var utf8 = require('utf8');
 
-var db = mongoose.connect('mongodb://user1:hyg&1qaz2wsx@127.0.0.1/medicalWiki');
+var db = mongoose.connect('mongodb://user1:hyg&1qaz2wsx@113.31.89.205/medicalWiki');
 var elasticsearch = require('elasticsearch');
 var client = new elasticsearch.Client({
-    host: 'http://127.0.0.1:9200',
+    host: 'http://113.31.89.205:9200',
     log: 'trace'
 });
 
@@ -434,8 +434,22 @@ router.put('/doctors', function (req, res, next) {
 //router.get('/doctors/commentCount',function(req,res,next){
 //
 //})
+router.delete('/doctor/comment',function(req,res,next){
+    //
+    Question.update({_id:req.query.questionId},{$pull:{comments:req.query.commentId}},function(err,doc){
+        if(err) next(err);
+        Comment.remove({_id:req.query.commentId},function(err,doc){
+            //
+
+            res.jsonp("succeed");
+            //
+        });
+    });
+    //
+});
 router.get('/doctor/beenComment', function (req, res, next) {
     //
+
     Question.find(
         {
             $and: [{doctor: mongoose.Types.ObjectId(req.query.doctor)}, {
@@ -455,8 +469,10 @@ router.get('/doctor/beenComment', function (req, res, next) {
                 e.comments.forEach(function (e1, i1, a1) {
                     result.push({
                         question: e.question,
+                        questionId: e._id,
                         answer: e.answer,
                         content: e1.content,
+                        commentId:e1._id,
                         commentTime: e1.commentTime
                     })
                 })
@@ -526,16 +542,11 @@ router.get('/doctors', function (req, res, next) {
                             //    console.log("fininshed");
                             //    callback();
                             //})
-                            Question.aggregate({
-                                    $project: {
-                                        doctor: 1,
-                                        answerTime: 1,
-                                        commentNumber: {$size: {"$ifNull": [ "$comments", [] ] }}
-                                    }
-                                }, {$match: {$and: [{doctor: mongoose.Types.ObjectId(e._id)}, {answerTime: {$gte: new Date(req.query.beginBeenCommentTime)}}, {answerTime: {$lte: new Date(req.query.endBeenCommentTime)}}]}}, {
+                            Question.aggregate(
+                                   {$match: {$and: [{doctor: mongoose.Types.ObjectId(e._id)}, {answerTime: {$gte: new Date(req.query.beginBeenCommentTime)}}, {answerTime: {$lte: new Date(req.query.endBeenCommentTime)}}]}}, {
                                     $group: {
                                         _id: "$doctor",
-                                        total: {$sum: "$commentNumber"}
+                                        total: {$sum: {$size: {"$ifNull": [ "$comments", [] ] }}}
                                     }
                                 }
 
@@ -593,8 +604,22 @@ router.get('/doctor/comment', function (req, res, next) {
                 }]
         }).populate('question').sort({commentTime: 1}).exec(
         function (err, doc) {
+
             if (err) next(err);
-            res.jsonp(doc);
+            var results=[];
+            doc.forEach(function(e,i,a){
+                //
+                results.push({
+                    question: e.question.question,
+                    questionId: e.question._id,
+                    answer: e.question.answer,
+                    content: e.content,
+                    commentId:e._id,
+                    commentTime: e.commentTime
+                });
+                //
+            });
+            res.jsonp(results);
 
         });
 
