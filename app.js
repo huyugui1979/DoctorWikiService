@@ -31,7 +31,6 @@ app.use(session({secret: 'ssshhhhh',saveUninitialized: true,resave: true}));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({extended: true}));
 app.use(express.static(path.join(__dirname, 'public')));
-
 app.all('*', function (req, res, next) {
     //app.use(cors());
     res.header('Access-Control-Allow-Credentials', true);
