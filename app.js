@@ -35,7 +35,6 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.all('*', function (req, res, next) {
     //app.use(cors());
     res.header('Access-Control-Allow-Credentials', true);
-
     res.setHeader("Access-Control-Expose-Headers", "Set-Cookie");
   //  res.header("Access-Control-Allow-Origin","localhost:12345");
     res.header('Access-Control-Allow-Origin', req.headers.origin || "*");
@@ -48,14 +47,10 @@ app.use(require('express-domain-middleware'));
 app.use('/', routes);
 app.use('/users', users);
 
-
-
 app.use(function errorHandler(err, req, res, next) {
     console.log('error on request  %s %s: %s', req.method, req.url, err.stack);
     res.status(500).send(err.message);
 });
-
-
 // catch 404 and forward to error handler
 //app.use(function (req, res, next) {
 //    var err = new Error('Not Found');

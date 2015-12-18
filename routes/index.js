@@ -13,7 +13,6 @@ var client = new elasticsearch.Client({
     host: 'http://113.31.89.205:9200',
     log: 'trace'
 });
-
 //var nodejieba = require("nodejieba");
 ////nodejieba.load({
 ////    userDict: '../dict/user.dict'
@@ -338,7 +337,6 @@ router.get('/vcode/forget', function (req, res, next) {
         }
     })
 
-
 });
 router.get('/getkey', function (req, res, next) {
     var rest = require('restler');
@@ -434,13 +432,30 @@ router.put('/doctors', function (req, res, next) {
 //router.get('/doctors/commentCount',function(req,res,next){
 //
 //})
+router.delete('/doctor/question',function(req,res,next){
+   //
+
+    Question.update({_id:req.query.question},{$set:{doctor:null,answerTime:null}},function(err,doc){
+       //
+        if(err) next(err);
+        res.jsonp("succeed");
+        //
+    });
+    //
+});
+router.get('/doctor/question',function(req,res,next){
+    Question.find({$and: [{doctor: req.query.doctor}, {answerTime: {$gt: new Date(req.query.beginTime)}}, {answerTime: {$lt: new Date(req.query.endTime)}}]}, function (err, doc) {
+        if(err) next(err);
+        res.jsonp(doc);
+    });
+});
 router.delete('/doctor/comment',function(req,res,next){
     //
     Question.update({_id:req.query.questionId},{$pull:{comments:req.query.commentId}},function(err,doc){
         if(err) next(err);
         Comment.remove({_id:req.query.commentId},function(err,doc){
             //
-
+            if(err) next(err);
             res.jsonp("succeed");
             //
         });
