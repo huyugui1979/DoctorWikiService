@@ -449,6 +449,7 @@ router.get('/doctor/question',function(req,res,next){
         res.jsonp(doc);
     });
 });
+
 router.delete('/doctor/comment',function(req,res,next){
     //
     Question.update({_id:req.query.questionId},{$pull:{comments:req.query.commentId}},function(err,doc){
