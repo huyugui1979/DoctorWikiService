@@ -7,10 +7,10 @@ var async = require('async');
 var simhash = require('simhash')('md5');
 var utf8 = require('utf8');
 
-var db = mongoose.connect('mongodb://user1:hyg&1qaz2wsx@113.31.89.205/medicalWiki');
+var db = mongoose.connect('mongodb://user1:hyg&1qaz2wsx@127.0.0.1/medicalWiki');
 var elasticsearch = require('elasticsearch');
 var client = new elasticsearch.Client({
-    host: 'http://113.31.89.205:9200',
+    host: 'http://127.0.0.1:9200',
     log: 'trace'
 });
 //var nodejieba = require("nodejieba");
